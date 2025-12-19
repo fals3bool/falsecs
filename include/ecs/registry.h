@@ -28,15 +28,14 @@ void ecs_entity_destroy(Registry *r, Entity e);
   ecs_add_component(registry, entity, C##_, &(C)__VA_ARGS__);
 
 #define ecs_get(registry, entity, C)                                           \
-  (C *)ecs_get_component(registry, entity, ecs_component_id(registry, #C));
+  (C *)ecs_get_component(registry, entity, ecs_cid(registry, #C));
 
 Component ecs_alloc_component(Registry *r, char *name, size_t size);
-
 void ecs_add_component(Registry *r, Entity e, Component id, void *data);
 void ecs_remove_component(Registry *r, Entity e, Component id);
 void *ecs_get_component(Registry *r, Entity e, Component id);
 
 int ecs_has_component(Registry *r, Entity e, Signature mask);
-Component ecs_component_id(Registry *r, char *name);
+Component ecs_cid(Registry *r, char *name);
 
 #endif

@@ -12,8 +12,9 @@ typedef struct {
 
 struct Registry {
   Signature entities[MAX_ENTITIES];
-  Entity free_entities[MAX_ENTITIES];
   Entity entity_count;
+  Entity free_entities[MAX_ENTITIES];
+  Entity free_count;
 
   ComponentList *components;
   Component comp_count;
@@ -22,6 +23,7 @@ struct Registry {
 Registry *ecs_registry() {
   Registry *r = malloc(sizeof(Registry));
   r->entity_count = 0;
+  r->free_count = 0;
   r->comp_count = 0;
   return r;
 }
@@ -35,16 +37,15 @@ void ecs_registry_free(Registry *r) {
 
 Entity ecs_entity(Registry *r) {
   Entity e;
-  if (r->free_entities[r->entity_count])
-    e = r->free_entities[r->entity_count];
+  if (r->free_count > 0)
+    e = r->free_entities[--r->free_count];
   else
-    e = r->entity_count;
-  r->free_entities[r->entity_count++] = 0;
+    e = r->entity_count++;
   return e;
 }
 
 void ecs_entity_destroy(Registry *r, Entity e) {
-  r->free_entities[--r->entity_count] = e;
+  r->free_entities[r->free_count++] = e;
 }
 
 // ########### //
@@ -77,8 +78,8 @@ void ecs_remove_component(Registry *r, Entity e, Component id) {
     return;
   size_t size = r->components[id].size;
   void *dest = r->components[id].list + e * size;
-  r->entities[e] &= ~(1 << id);
   memset(dest, 0, size);
+  r->entities[e] &= ~(1 << id);
 }
 
 void *ecs_get_component(Registry *r, Entity e, Component id) {
@@ -90,7 +91,7 @@ int ecs_has_component(Registry *r, Entity e, Signature mask) {
   return (r->entities[e] & mask) == mask;
 }
 
-Component ecs_component_id(Registry *r, char *name) {
+Component ecs_cid(Registry *r, char *name) {
   for (Component id = 0; id < r->comp_count; id++) {
     if (strcmp(r->components[id].name, name) == 0)
       return id;
