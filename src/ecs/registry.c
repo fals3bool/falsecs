@@ -10,6 +10,11 @@ typedef struct {
   size_t size;
 } ComponentList;
 
+typedef struct {
+  System *list;
+  size_t size;
+} LayerSystems;
+
 struct Registry {
   Signature entities[MAX_ENTITIES];
   Entity entity_count;
@@ -18,6 +23,8 @@ struct Registry {
 
   ComponentList *components;
   Component comp_count;
+
+  LayerSystems *systems;
 };
 
 Registry *ecs_registry() {
@@ -25,6 +32,9 @@ Registry *ecs_registry() {
   r->entity_count = 0;
   r->free_count = 0;
   r->comp_count = 0;
+  r->components = NULL;
+  r->systems = NULL;
+  ecs_alloc_systems(r);
   return r;
 }
 
@@ -97,4 +107,35 @@ Component ecs_cid(Registry *r, char *name) {
       return id;
   }
   return r->comp_count;
+}
+
+// ######### //
+//  SYSTEMS  //
+// ######### //
+
+void ecs_alloc_systems(Registry *r) {
+  r->systems = calloc(EcsSystemLayers, sizeof(LayerSystems));
+}
+
+void ecs_alloc_system(Registry *r, EcsLayer ly, Script s, Signature mask) {
+  size_t cur = r->systems[ly].size++;
+  if (cur == 0)
+    r->systems[ly].list = malloc(sizeof(System));
+  else
+    r->systems[ly].list =
+        realloc(r->systems[ly].list, sizeof(System) * r->systems[ly].size);
+
+  r->systems[ly].list[cur].run = s;
+  r->systems[ly].list[cur].mask = mask;
+}
+
+void ecs_run(Registry *r, EcsLayer ly) {
+  for (Entity e = 0; e < r->entity_count; e++) {
+    size_t len = r->systems[ly].size;
+    for (size_t i = 0; i < len; i++) {
+      if (!ecs_has_component(r, e, r->systems[ly].list[i].mask))
+        continue;
+      r->systems[ly].list[i].run(r, e);
+    }
+  }
 }

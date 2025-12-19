@@ -10,6 +10,11 @@ typedef struct Registry Registry;
 typedef uint16_t Entity;
 typedef uint16_t Signature;
 typedef uint16_t Component;
+typedef void (*Script)(Registry *, Entity);
+typedef struct {
+  Script run;
+  Signature mask;
+} System;
 
 Registry *ecs_registry();
 void ecs_registry_free(Registry *r);
@@ -37,5 +42,24 @@ void *ecs_get_component(Registry *r, Entity e, Component id);
 
 int ecs_has_component(Registry *r, Entity e, Signature mask);
 Component ecs_cid(Registry *r, char *name);
+
+// ######### //
+//  SYSTEMS  //
+// ######### //
+
+typedef enum {
+  EcsOnStart = 0,
+  EcsOnUpdate,
+  EcsOnLateUpdate,
+  EcsOnFixedUpdate,
+  EcsOnRender,
+  EcsOnGui,
+  EcsSystemLayers
+} EcsLayer;
+
+void ecs_alloc_systems(Registry *r);
+void ecs_alloc_system(Registry *r, EcsLayer ly, Script s, Signature mask);
+
+void ecs_run(Registry *r, EcsLayer ly);
 
 #endif
