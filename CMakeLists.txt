@@ -4,7 +4,7 @@ project(falsecs C)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_C_FLAGS_DEBUG "-g -O0 -Wall -Wextra")
+set(CMAKE_BUILD_TYPE RELEASE)
 
 # Adding Raylib
 include(FetchContent)
@@ -29,11 +29,7 @@ add_library(${PROJECT_NAME} STATIC ${SRC})
 target_include_directories(${PROJECT_NAME}
   PUBLIC $<BUILD_INTERFACE:${FALSECS_HEADERS}>
   $<INSTALL_INTERFACE:include>)
-
-add_library(${PROJECT_NAME}-s SHARED ${SRC})
-target_include_directories(${PROJECT_NAME}-s
-  PUBLIC $<BUILD_INTERFACE:${FALSECS_HEADERS}>
-  $<INSTALL_INTERFACE:include>)
+target_link_libraries(${PROJECT_NAME} raylib)
 
 # Examples
 if(FALSECS_BUILD_EXAMPLES)
@@ -44,6 +40,10 @@ if(FALSECS_BUILD_EXAMPLES)
   add_executable(default_components examples/default_components.c)
   target_link_libraries(default_components PRIVATE ${PROJECT_NAME})
   target_include_directories(default_components PRIVATE ${FALSECS_HEADERS})
+
+  add_executable(scene_manager examples/scene_manager.c)
+  target_link_libraries(scene_manager PRIVATE ${PROJECT_NAME})
+  target_include_directories(scene_manager PRIVATE ${FALSECS_HEADERS})
 endif()
 
 

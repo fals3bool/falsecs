@@ -110,6 +110,9 @@ Component ecs_cid(Registry *r, char *name) {
   return r->comp_count;
 }
 
+// non-object-oriented encapsulation
+Entity ecs_entity_count(Registry *r) { return r->entity_count; }
+
 // ######### //
 //  SYSTEMS  //
 // ######### //

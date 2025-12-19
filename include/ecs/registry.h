@@ -32,6 +32,9 @@ void ecs_entity_destroy(Registry *r, Entity e);
 #define ecs_add(registry, entity, C, ...)                                      \
   ecs_add_component(registry, entity, C##_, &(C)__VA_ARGS__);
 
+#define ecs_add_def(registry, entity, C, ...)                                  \
+  ecs_add_component(registry, entity, ecs_cid(registry, #C), &(C)__VA_ARGS__);
+
 #define ecs_get(registry, entity, C)                                           \
   (C *)ecs_get_component(registry, entity, ecs_cid(registry, #C));
 
@@ -42,6 +45,9 @@ void *ecs_get_component(Registry *r, Entity e, Component id);
 
 int ecs_has_component(Registry *r, Entity e, Signature mask);
 Component ecs_cid(Registry *r, char *name);
+
+// non-object-oriented encapsulation
+Entity ecs_entity_count(Registry *r);
 
 // ######### //
 //  SYSTEMS  //
