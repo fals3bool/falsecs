@@ -1,4 +1,3 @@
-#include "ecs/registry.h"
 #include <ecs/component.h>
 #include <ecs/system.h>
 
