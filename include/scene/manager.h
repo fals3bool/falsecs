@@ -9,20 +9,17 @@
 typedef Registry Scene;
 
 typedef struct {
-  int sc_w;
-  int sc_h;
   Color bg;
-  Scene *scene;
   float fixed_time;
+  Scene *scene;
 } FalsECS;
 
 Entity ecs_entity_wdata(Scene *sc);
 
-FalsECS *falsecs_start(int screen_w, int screen_h, char *title, Color bg);
+FalsECS falsecs_start(Color bg);
 void falsecs_loop(FalsECS *falsecs);
 
-Scene *falsecs_scene(FalsECS *falsecs);
-void falsecs_free_scene(FalsECS *falsecs);
-void falsecs_free(FalsECS *falsecs);
+Scene *falsecs_scene(FalsECS *falsecs, Camera2D camera);
+void falsecs_clean(FalsECS *falsecs);
 
 #endif

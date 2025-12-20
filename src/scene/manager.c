@@ -12,13 +12,8 @@ Entity ecs_entity_wdata(Scene *sc) {
   return e;
 }
 
-FalsECS *falsecs_start(int screen_w, int screen_h, char *title, Color bg) {
-  InitWindow(screen_w, screen_h, title);
-  FalsECS *falsecs = malloc(sizeof(FalsECS));
-  falsecs->sc_w = screen_w;
-  falsecs->sc_h = screen_h;
-  falsecs->scene = NULL;
-  falsecs->bg = bg;
+FalsECS falsecs_start(Color bg) {
+  FalsECS falsecs = {bg, 0, NULL};
   return falsecs;
 }
 
@@ -57,7 +52,7 @@ void falsecs_loop(FalsECS *falsecs) {
 #endif
 }
 
-Scene *falsecs_scene(FalsECS *falsecs) {
+Scene *falsecs_scene(FalsECS *falsecs, Camera2D camera) {
   Scene *r = ecs_registry();
 
   ecs_component(r, Camera2D);
@@ -68,8 +63,7 @@ Scene *falsecs_scene(FalsECS *falsecs) {
   ecs_component(r, Collider);
 
   Entity cam = ecs_entity(r);
-  ecs_add(r, cam, Camera2D,
-          {{falsecs->sc_w / 2.f, falsecs->sc_h / 2.f}, {0, 0}, 0, 1});
+  ecs_add_obj(r, cam, Camera2D, camera);
 
   ecs_system(r, EcsOnStart, ecs_behaviour_system_start, Behaviour, EntityData);
   ecs_system(r, EcsOnUpdate, ecs_behaviour_system_update, Behaviour,
@@ -94,15 +88,10 @@ Scene *falsecs_scene(FalsECS *falsecs) {
   return r;
 }
 
-void falsecs_free_scene(FalsECS *falsecs) {
+void falsecs_clean(FalsECS *falsecs) {
   if (falsecs->scene == NULL)
     return;
   ecs_registry_free(falsecs->scene);
   falsecs->scene = NULL;
 }
 
-void falsecs_free(FalsECS *falsecs) {
-  CloseWindow();
-  falsecs_free_scene(falsecs);
-  free(falsecs);
-}

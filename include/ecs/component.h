@@ -6,6 +6,8 @@
 
 #include <stdint.h>
 
+#define VEC2ZERO (Vector2){0, 0}
+
 typedef struct {
   uint8_t active;
   uint8_t visible;
@@ -29,12 +31,15 @@ typedef struct {
   uint8_t solid;
 } Collider;
 
-Collider ecs_collider(int vertices, float radius);
-Collider ecs_collider_solid(int vertices, float radius);
-Collider ecs_collider_rot(int vertices, float radius, float rot);
-Collider ecs_collider_solid_rot(int vertices, float radius, float rot);
-Collider ecs_collider_offset(int vertices, float radius, float rot, Vector2 origin);
-Collider ecs_collider_solid_offset(int vertices, float radius, float rot, Vector2 origin);
+#define ecs_collider(v, r) ecs_collider_ex(v, r, 0, VEC2ZERO, 0)
+#define ecs_collider_rot(v, r, a) ecs_collider_ex(v, r, a, VEC2ZERO, 0)
+#define ecs_collider_offset(v, r, a, o) ecs_collider_ex(v, r, a, o, 0)
+#define ecs_collider_solid(v, r) ecs_collider_ex(v, r, 0, VEC2ZERO, 1)
+#define ecs_collider_rot_solid(v, r, a) ecs_collider_ex(v, r, a, VEC2ZERO, 1)
+#define ecs_collider_offset_solid(v, r, a, o) ecs_collider_ex(v, r, a, o, 1)
+
+Collider ecs_collider_ex(int vertices, float radius, float rot, Vector2 origin,
+                         uint8_t solid);
 
 typedef struct {
   Texture tex;
