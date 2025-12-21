@@ -19,6 +19,7 @@ int main(void) {
   Entity e = ecs_entity(r);
 
   // add the component using the var Position_
+  // adding a component to an entity modifies its signature using the ID.
   ecs_add(r, e, Position, {20, 12});
   // calling ecs_add(...) outside this function will lead to an error:
   // err: Use of undeclared identifier 'Position_'.
