@@ -6,13 +6,10 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE RELEASE)
 
-# WEB or LINUX
+# WEB
 if(EMSCRIPTEN)
-    message(STATUS "Compilando para Web (Emscripten)")
     set(PLATFORM Web)
-    set(CMAKE_EXECUTABLE_SUFFIX ".html")
-else()
-    message(STATUS "Compilando para Linux")
+    # set(CMAKE_EXECUTABLE_SUFFIX ".html")
 endif()
 
 # Adding Raylib
@@ -42,9 +39,12 @@ target_link_libraries(${PROJECT_NAME} raylib)
 
 # Examples
 if(FALSECS_BUILD_EXAMPLES)
-  add_executable(entities examples/entities.c)
-  target_link_libraries(entities PRIVATE ${PROJECT_NAME})
-  target_include_directories(entities PRIVATE ${FALSECS_HEADERS})
+  file(GLOB EXAMPLE_SOURCES CONFIGURE_DEPENDS examples/*.c)
+  foreach(example_src ${EXAMPLE_SOURCES})
+    get_filename_component(name ${example_src} NAME_WE)
+    add_executable(${name} ${example_src})
+    target_link_libraries(${name} PRIVATE ${PROJECT_NAME})
+  endforeach()
 endif()
 
 
