@@ -80,6 +80,7 @@ Component ecs_alloc_component(Registry *r, char *name, size_t size) {
 }
 
 void ecs_add_component(Registry *r, Entity e, Component id, void *data) {
+  assert(id < r->comp_count && "Component does not exist!");
   size_t size = r->components[id].size;
   void *dest = r->components[id].list + e * size;
   memcpy(dest, data, size);
@@ -87,6 +88,7 @@ void ecs_add_component(Registry *r, Entity e, Component id, void *data) {
 }
 
 void ecs_remove_component(Registry *r, Entity e, Component id) {
+  assert(id < r->comp_count && "Component does not exist!");
   if ((r->entities[e] & (1 << id)) == 0)
     return;
   size_t size = r->components[id].size;
