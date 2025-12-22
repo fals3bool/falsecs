@@ -56,8 +56,9 @@ Entity ecs_entity(Registry *r) {
   return e;
 }
 
-// TODO: erase components under its ID.
 void ecs_entity_destroy(Registry *r, Entity e) {
+  for (Component c = 0; c < r->comp_count; c++)
+    ecs_remove_component(r, e, c);
   r->free_entities[r->free_count++] = e;
 }
 
