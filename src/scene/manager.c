@@ -1,3 +1,4 @@
+#include "ecs/system.h"
 #include <scene/manager.h>
 
 #include <stdlib.h>
@@ -24,9 +25,9 @@ void generic_loop(void *manager) {
   ecs_run(falsecs->scene, EcsOnLateUpdate);
 
   falsecs->fixed_time += GetFrameTime();
-  while (falsecs->fixed_time >= FIXED_DELTATIME) {
+  while (falsecs->fixed_time >= ECS_FIXED_DELTATIME) {
     ecs_run(falsecs->scene, EcsOnFixedUpdate);
-    falsecs->fixed_time -= FIXED_DELTATIME;
+    falsecs->fixed_time -= ECS_FIXED_DELTATIME;
   }
 
   BeginDrawing();
@@ -61,6 +62,7 @@ Scene *falsecs_scene(FalsECS *falsecs, Camera2D camera) {
   ecs_component(r, Sprite);
   ecs_component(r, Behaviour);
   ecs_component(r, Collider);
+  ecs_component(r, RigidBody);
 
   Entity cam = ecs_entity(r);
   ecs_add_obj(r, cam, Camera2D, camera);
@@ -78,11 +80,12 @@ Scene *falsecs_scene(FalsECS *falsecs, Camera2D camera) {
 
   ecs_system(r, EcsOnUpdate, ecs_transform_collider_system, Transform2,
              Collider);
-  ecs_system(r, EcsOnUpdate, ecs_collision_system, Transform2,
-             Collider);
+  ecs_system(r, EcsOnUpdate, ecs_collision_system, Transform2, Collider);
+
+  ecs_system(r, EcsOnFixedUpdate, ecs_gravity_system, RigidBody);
+  ecs_system(r, EcsOnFixedUpdate, ecs_physics_system, RigidBody, Transform2);
 
   ecs_system(r, EcsOnRender, ecs_sprite_system, Transform2, Sprite);
-  ecs_system(r, EcsOnRender, ecs_debug_collider_system, Collider);
 
   falsecs->scene = r;
   return r;
@@ -94,4 +97,3 @@ void falsecs_clean(FalsECS *falsecs) {
   ecs_registry_free(falsecs->scene);
   falsecs->scene = NULL;
 }
-

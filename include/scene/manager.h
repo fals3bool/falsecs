@@ -4,8 +4,6 @@
 #include <ecs/component.h>
 #include <ecs/system.h>
 
-#define FIXED_DELTATIME 1.f / 60.f
-
 typedef Registry Scene;
 
 typedef struct {

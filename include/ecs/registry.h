@@ -56,6 +56,8 @@ Entity ecs_entity_count(Registry *r);
 //  SYSTEMS  //
 // ######### //
 
+#define ECS_FIXED_DELTATIME 1.f / 60.f
+
 typedef enum {
   EcsOnStart = 0,
   EcsOnUpdate,

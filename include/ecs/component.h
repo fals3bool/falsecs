@@ -4,6 +4,7 @@
 #include <ecs/registry.h>
 #include <raylib.h>
 
+#include <math.h>
 #include <stdint.h>
 
 #define VEC2ZERO (Vector2){0, 0}
@@ -42,6 +43,21 @@ typedef struct {
 
 Collider collider_create(int vertices, float radius, float rot, Vector2 origin,
                          uint8_t solid);
+
+typedef struct {
+  uint8_t is_static;
+  float mass;
+  float damping;
+
+  Vector2 speed;
+  Vector2 acc;
+} RigidBody;
+#define RIGIDBODY_STATIC(m, d) {1, (m > 0) ? m : INFINITY, d, {0, 0}, {0, 0}}
+#define RIGIDBODY_DYNAMIC(m, d) {0, (m > 0) ? m : INFINITY, d, {0, 0}, {0, 0}}
+
+void rb_apply_force(RigidBody *rb, Vector2 force);
+void rb_apply_impulse(RigidBody *rb, Vector2 impulse);
+void rb_apply_damping(RigidBody *rb);
 
 typedef struct {
   Texture tex;
