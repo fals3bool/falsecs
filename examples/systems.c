@@ -14,7 +14,7 @@ typedef struct {
 void move_system(Registry *r, Entity e) {
   Position *p = ecs_get(r, e, Position);
   p->x += 100;
-  printf("entity id:{%d} moved x+=100", e);
+  printf("entity id:{%d} moved x+=100\n", e);
 }
 
 void all_comps(Registry *r, Entity e) {
@@ -30,15 +30,17 @@ int main(void) {
   // You also need to specify the component(s) to compare signatures.
   // This system runs for every entity that has a Position component.
   ecs_system(r, EcsOnUpdate, move_system, Position);
-  ecs_system(r, EcsOnUpdate, all_comps, Position, StaticPosition);
+  // 'ecs_system_local' uses the local-scope variable 'Position_'
+  // and 'StaticPosition_'
+  ecs_system_local(r, EcsOnUpdate, all_comps, Position, StaticPosition);
 
   Entity e1 = ecs_entity(r);
   Entity e2 = ecs_entity(r);
   Entity e3 = ecs_entity(r);
-  ecs_add_cid(r, e1, Position, {20, 20});
-  ecs_add_cid(r, e2, StaticPosition, {20, 20});
-  ecs_add_cid(r, e3, Position, {20, 20});
-  ecs_add_cid(r, e3, StaticPosition, {20, 20});
+  ecs_add_local(r, e1, Position, {20, 20});
+  ecs_add_local(r, e2, StaticPosition, {20, 20});
+  ecs_add_local(r, e3, Position, {20, 20});
+  ecs_add_local(r, e3, StaticPosition, {20, 20});
 
   Position *p1 = ecs_get(r, e1, Position);
   StaticPosition *p2 = ecs_get(r, e2, StaticPosition);

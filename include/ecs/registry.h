@@ -32,7 +32,7 @@ void ecs_entity_destroy(Registry *r, Entity e);
 #define ecs_add(registry, entity, C, ...)                                      \
   ecs_add_component(registry, entity, ecs_cid(registry, #C), &(C)__VA_ARGS__);
 
-#define ecs_add_cid(registry, entity, C, ...)                                  \
+#define ecs_add_local(registry, entity, C, ...)                                \
   ecs_add_component(registry, entity, C##_, &(C)__VA_ARGS__);
 
 #define ecs_add_obj(registry, entity, C, ...)                                  \
@@ -68,22 +68,36 @@ typedef enum {
   EcsSystemLayers
 } EcsLayer;
 
-#define ECS_SIGNATURE(C) (1ULL << C##_)
-
-#define FOR_EACH_1(m, x) m(x)
-#define FOR_EACH_2(m, x, ...) m(x) | FOR_EACH_1(m, __VA_ARGS__)
-#define FOR_EACH_3(m, x, ...) m(x) | FOR_EACH_2(m, __VA_ARGS__)
-#define FOR_EACH_4(m, x, ...) m(x) | FOR_EACH_3(m, __VA_ARGS__)
-
 #define GET_MACRO(_1, _2, _3, _4, NAME, ...) NAME
 
-#define FOR_EACH(m, ...)                                                       \
+#define ECS_SIGNATURE_LOCAL(C) (1ULL << C##_)
+#define ECS_SIGNATURE(r, C) (1ULL << ecs_cid((r), #C))
+
+#define FOR_EACH_l1(m, x) m(x)
+#define FOR_EACH_l2(m, x, ...) m(x) | FOR_EACH_l1(m, __VA_ARGS__)
+#define FOR_EACH_l3(m, x, ...) m(x) | FOR_EACH_l2(m, __VA_ARGS__)
+#define FOR_EACH_l4(m, x, ...) m(x) | FOR_EACH_l3(m, __VA_ARGS__)
+
+#define FOR_EACH_1(m, r, x) m(r, x)
+#define FOR_EACH_2(m, r, x, ...) m(r, x) | FOR_EACH_1(m, r, __VA_ARGS__)
+#define FOR_EACH_3(m, r, x, ...) m(r, x) | FOR_EACH_2(m, r, __VA_ARGS__)
+#define FOR_EACH_4(m, r, x, ...) m(r, x) | FOR_EACH_3(m, r, __VA_ARGS__)
+
+#define FOR_EACH_l(m, ...)                                                     \
+  GET_MACRO(__VA_ARGS__, FOR_EACH_l4, FOR_EACH_l3, FOR_EACH_l2,                \
+            FOR_EACH_l1)(m, __VA_ARGS__)
+
+#define FOR_EACH(m, r, ...)                                                    \
   GET_MACRO(__VA_ARGS__, FOR_EACH_4, FOR_EACH_3, FOR_EACH_2,                   \
-            FOR_EACH_1)(m, __VA_ARGS__)
+            FOR_EACH_1)(m, r, __VA_ARGS__)
+
+#define ecs_system_local(registry, layer, script, ...)                         \
+  ecs_alloc_system(registry, layer, script,                                    \
+                   FOR_EACH_l(ECS_SIGNATURE_LOCAL, __VA_ARGS__));
 
 #define ecs_system(registry, layer, script, ...)                               \
   ecs_alloc_system(registry, layer, script,                                    \
-                   FOR_EACH(ECS_SIGNATURE, __VA_ARGS__));
+                   FOR_EACH(ECS_SIGNATURE, (registry), __VA_ARGS__))
 
 void ecs_alloc_systems(Registry *r);
 void ecs_free_systems(Registry *r);
