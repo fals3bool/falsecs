@@ -11,19 +11,22 @@ int main(void) {
   Registry *r = ecs_registry();
   Entity e = ecs_entity(r);
 
-  // - - - - -- - - - - //
-  // REGISTER COMPONENT //
-  // - - - - -- - - - - //
+  // - - - - - - - - - - //
+  // REGISTER COMPONENTS //
+  // - - - - - - - - - - //
 
-  // The registry stores a pair (string, int) with the name "Position" and the
-  // Component ID. It also creates a local-scope variable called 'Position_'
-  // that stores the Component ID.
+  // The registry stores the component Position under its ID and name
+  // "Position". It also creates a local-scope variable called 'Position_' that
+  // stores the component ID.
   ecs_component(r, Position);
 
-  // 'ecs_cid' retrieves the component id using the registry's pair (string,
-  // int). then add a component using that id.
-  Component c = ecs_cid(r, "Position");
+  // Using that local-scope variable, a component can be added.
   Position pos = {10, 10};
+  ecs_add_component(r, e, Position_, &pos);
+
+  // otherwise 'ecs_cid' retrieves the component id using the registry's pair
+  // (string, int). then add a component using that id.
+  Component c = ecs_cid(r, "Position");
   ecs_add_component(r, e, c, &pos);
   // this functions uses memcpy, 'pos' can be changed without changing the
   // component itself.
@@ -31,19 +34,19 @@ int main(void) {
 
   // Once the component is added, the registry stores a signature under the
   // entity id. It can be recreated using the component id.
-  Signature s = (1 << ecs_cid(r, "Position"));
+  Signature s = (1 << ecs_cid(r, "Position")); // s = 000...00001
 
   // - - - - - - - - - - //
   // RETRIEVE COMPONENTS //
   // - - - - - - - - - - //
 
-  // retrieve the component by its id.
+  // Retrieve the component by its id.
   Position *p = ecs_get_component(r, e, c);
   printf("Position: {%.2f, %.2f}\n", p->x, p->y);
 
-  // - - - - - - - - - - - - - - - - - - //
-  // FALSECS DEFINES SOME USEFULL MACROS //
-  // - - - - - - - - - - - - - - - - - - //
+  // - - - - - - - //
+  // USING  MACROS //
+  // - - - - - - - //
 
   // 'ecs_add' searches for the id using ecs_cid()
   ecs_add(r, e, Position, {20, 12});

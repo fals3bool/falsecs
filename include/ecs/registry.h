@@ -99,9 +99,8 @@ typedef enum {
   ecs_alloc_system(registry, layer, script,                                    \
                    FOR_EACH(ECS_SIGNATURE, (registry), __VA_ARGS__))
 
-void ecs_alloc_systems(Registry *r);
-void ecs_free_systems(Registry *r);
 void ecs_alloc_system(Registry *r, EcsLayer ly, Script s, Signature mask);
+void ecs_free_systems(Registry *r);
 
 void ecs_run(Registry *r, EcsLayer ly);
 

@@ -27,6 +27,7 @@ struct Registry {
   LayerSystems *systems;
 };
 
+void ecs_alloc_systems(Registry *r);
 Registry *ecs_registry() {
   Registry *r = malloc(sizeof(Registry));
   r->entity_count = 0;

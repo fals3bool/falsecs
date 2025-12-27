@@ -2,9 +2,7 @@
 
 #include <stdio.h>
 
-void print_entities(Entity e1, Entity e2, Entity e3) {
-  printf("\nentities ids:\n [e1] {%d}\n [e2] {%d}\n [e3] {%d}\n", e1, e2, e3);
-}
+#define PRINT_ID(entity) printf("%s {id:%d}\n", #entity, entity)
 
 typedef struct {
   float x;
@@ -14,34 +12,44 @@ typedef struct {
 void MOVE(Registry *r, Entity e) {
   Position *pos = ecs_get(r, e, Position);
   pos->x += 100;
+  printf("\nFrom system [MOVE] -> x += 100\n");
 }
 
 void PRINT(Registry *r, Entity e) {
   Position *pos = ecs_get(r, e, Position);
-  printf("\nposition: {%.2f, %.2f}\n", pos->x, pos->y);
+  printf("\nFrom system [PRINT] -> position: {%.2f, %.2f}\n", pos->x, pos->y);
 }
 
 int main(void) {
 
+  // ECS REGISTRY
   Registry *world = ecs_registry();
-  Entity e0 = ecs_entity(world);
 
+  // ENTITIES
+  Entity e0 = ecs_entity(world);
+  PRINT_ID(e0);
   Entity e1 = ecs_entity(world);
+  PRINT_ID(e1);
   Entity e2 = ecs_entity(world);
-  print_entities(e0, e1, e2);
+  PRINT_ID(e2);
   ecs_entity_destroy(world, e1);
   Entity e3 = ecs_entity(world);
+  PRINT_ID(e3);
   e1 = ecs_entity(world);
-  print_entities(e1, e2, e3);
+  PRINT_ID(e1);
 
+  // REGISTER AND ADD COMPONENT
   ecs_component(world, Position);
   ecs_add(world, e1, Position, {23, 24});
 
-  ecs_system(world, EcsOnUpdate, PRINT, Position);
-  ecs_system(world, EcsOnUpdate, MOVE, Position);
-  ecs_system(world, EcsOnUpdate, PRINT, Position);
+  // SYSTEMS USING THE COMPONENT 'Position'
+  ecs_system(world, 0, MOVE, Position);
+  ecs_system(world, 1, PRINT, Position);
 
-  ecs_run(world, EcsOnUpdate);
+  // RUN SYSTEMS UNDER EXECUTION LAYERS
+  ecs_run(world, 1);
+  ecs_run(world, 0);
+  ecs_run(world, 1);
 
   ecs_registry_free(world);
 
