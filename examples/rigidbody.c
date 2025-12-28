@@ -27,10 +27,20 @@ void move_self(Scene *sc, Entity self) {
 
   // modify speed:
   rb_apply_impulse(rb, d);
+
   // modify acceleration:
   // rb_apply_force(rb, Vector2Scale(Vector2Normalize(d), 900.f));
   // won't stop unless manually stoped.
   // rb_apply_force(rb, (Vector2){-rb->acc.x, -rb->acc.y});
+
+  if (t->position.y < -SCREEN_H / 2.f)
+    t->position.y = SCREEN_H / 2.f;
+  if (t->position.y > SCREEN_H / 2.f)
+    t->position.y = -SCREEN_H / 2.f;
+  if (t->position.x < -SCREEN_W / 2.f)
+    t->position.x = SCREEN_W / 2.f;
+  if (t->position.x > SCREEN_W / 2.f)
+    t->position.x = -SCREEN_W / 2.f;
 }
 
 void draw_self(Scene *sc, Entity self) {
@@ -63,21 +73,21 @@ int main(void) {
   Scene *sc = falsecs_scene(&falsecs, cam);
 
   Entity e = ecs_entity_wdata(sc);
-  ecs_add(sc, e, Transform2, TRANSFORM_DEFAULT);
+  ecs_add(sc, e, Transform2, TRANSFORM_ZERO);
 
   // add rigidbody
-  // ecs_add(sc, e, RigidBody, {20}); // mass = 20kg.
-  // ecs_add(sc, e, RigidBody, {20, 0.9f}); // mass = 20kg, damping = 0.9.
-  // ecs_add(sc, e, RigidBody, {20, 0.9f, 0}) // with gravity.
-  // ecs_add(sc, e, RigidBody, {20, 0.9f, 1}) // without gravity.
-  //
+  ecs_add(sc, e, RigidBody, {20}); // mass = 20kg.
+  ecs_add(sc, e, RigidBody, {20, 0.9f}); // mass = 20kg, damping = 0.9.
+  ecs_add(sc, e, RigidBody, {20, 0.9f, 0}) // with gravity.
+  ecs_add(sc, e, RigidBody, {20, 0.9f, 1}) // without gravity.
+  
   // there are some macros available.
   float mass = 40.f;
   float dam = 2.7f;
-  // ecs_add(sc, e, RigidBody, RIGIDBODY_DYNAMIC(mass, dam)); // with gravity
+  ecs_add(sc, e, RigidBody, RIGIDBODY_DYNAMIC(mass, dam)); // with gravity
   ecs_add(sc, e, RigidBody, RIGIDBODY_STATIC(mass, dam)); // without gravity
 
-  ecs_add(sc, e, Behaviour, BEHAVIOUR_DEFAULT);
+  ecs_add(sc, e, Behaviour, {0});
   ecs_script(sc, e, move_self, EcsOnFixedUpdate);
   ecs_script(sc, e, draw_self, EcsOnRender);
   ecs_script(sc, e, gui_self, EcsOnGui);

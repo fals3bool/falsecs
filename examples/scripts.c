@@ -34,10 +34,10 @@ int main(void) {
   Scene *sc = falsecs_scene(&falsecs, cam);
 
   Entity e = ecs_entity_wdata(sc);
-  ecs_add(sc, e, Transform2, TRANSFORM_DEFAULT);
+  ecs_add(sc, e, Transform2, TRANSFORM_ZERO);
 
   // Behaviour is a component that let you add scripts.
-  ecs_add(sc, e, Behaviour, BEHAVIOUR_DEFAULT);
+  ecs_add(sc, e, Behaviour, {0});
 
   // Then add scripts under the dessired execution layer.
   ecs_script(sc, e, move_self, EcsOnUpdate);
