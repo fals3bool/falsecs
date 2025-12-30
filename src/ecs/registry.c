@@ -89,19 +89,21 @@ void ecs_add_component(Registry *r, Entity e, Component id, void *data) {
   r->entities[e] |= (1 << id);
 }
 
+void *ecs_get_component(Registry *r, Entity e, Component id) {
+  assert(id < r->comp_count && "Component does not exist!");
+  if (!ecs_has_component(r, e, (1 << id)))
+    return NULL;
+  return r->components[id].list + e * r->components[id].size;
+}
+
 void ecs_remove_component(Registry *r, Entity e, Component id) {
   assert(id < r->comp_count && "Component does not exist!");
-  if ((r->entities[e] & (1 << id)) == 0)
+  if (!ecs_has_component(r, e, (1 << id)))
     return;
   size_t size = r->components[id].size;
   void *dest = r->components[id].list + e * size;
   memset(dest, 0, size);
   r->entities[e] &= ~(1 << id);
-}
-
-void *ecs_get_component(Registry *r, Entity e, Component id) {
-  assert(id < r->comp_count && "Component does not exist!");
-  return r->components[id].list + e * r->components[id].size;
 }
 
 int ecs_has_component(Registry *r, Entity e, Signature mask) {

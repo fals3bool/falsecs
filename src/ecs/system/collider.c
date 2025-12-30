@@ -30,43 +30,72 @@ void ecs_debug_collider_system(Registry *r, Entity e) {
 
 // COLLISIONS
 
-uint8_t collision_sat(Transform2 *ta, Collider *a, Transform2 *tb,
-                      Collider *b) {
-  float overlap = INFINITY;
+typedef struct {
+  Transform2 *ta, *tb;
+  Vector2 normal;
+  Vector2 contact;
+  float distance;
+} Collision;
 
-  for (uint8_t i = 0; i < a->vertices; i++) {
-    uint8_t j = (i + 1) % a->vertices;
-    Vector2 proj = {-(a->vx[j].y - a->vx[i].y), a->vx[j].x - a->vx[i].x};
+static uint8_t sat_proj(Transform2 *ta, Collider *ca, Transform2 *tb,
+                        Collider *cb, float *min_distance, Vector2 *axis) {
+  for (uint8_t i = 0; i < ca->vertices; i++) {
+    uint8_t j = (i + 1) % ca->vertices;
+
+    Vector2 proj = {-(ca->vx[j].y - ca->vx[i].y), ca->vx[j].x - ca->vx[i].x};
     proj = Vector2Normalize(proj);
 
     float min_r1 = INFINITY, max_r1 = -INFINITY;
-    for (uint8_t p = 0; p < a->vertices; p++) {
-      float q = (a->vx[p].x * proj.x + a->vx[p].y * proj.y);
+    for (uint8_t p = 0; p < ca->vertices; p++) {
+      float q = (ca->vx[p].x * proj.x + ca->vx[p].y * proj.y);
       min_r1 = fminf(min_r1, q);
       max_r1 = fmaxf(max_r1, q);
     }
 
     float min_r2 = INFINITY, max_r2 = -INFINITY;
-    for (uint8_t p = 0; p < b->vertices; p++) {
-      float q = (b->vx[p].x * proj.x + b->vx[p].y * proj.y);
+    for (uint8_t p = 0; p < cb->vertices; p++) {
+      float q = (cb->vx[p].x * proj.x + cb->vx[p].y * proj.y);
       min_r2 = fminf(min_r2, q);
       max_r2 = fmaxf(max_r2, q);
     }
 
-    overlap = fminf(fminf(max_r1, max_r2) - fmaxf(min_r1, min_r2), overlap);
-
-    if (!(max_r2 >= min_r1 && max_r1 >= min_r2))
+    float over = fminf(max_r1, max_r2) - fmaxf(min_r1, min_r2);
+    if (over <= 0)
       return false;
+
+    if (over < *min_distance) {
+      *min_distance = over;
+      *axis = proj;
+    }
+  }
+  return true;
+}
+
+uint8_t collision_sat(Transform2 *ta, Collider *ca, Transform2 *tb,
+                      Collider *cb, Collision *output) {
+  float distance = INFINITY;
+  Vector2 proj = {0, 0};
+
+  if (!sat_proj(ta, ca, tb, cb, &distance, &proj))
+    return false;
+
+  if (!sat_proj(tb, cb, ta, ca, &distance, &proj))
+    return false;
+
+  Vector2 delta = {tb->position.x - ta->position.x,
+                   tb->position.y - ta->position.y};
+
+  if (delta.x * proj.x + delta.y * proj.y < 0.0f) {
+    proj.x = -proj.x;
+    proj.y = -proj.y;
   }
 
-  Vector2 dis = {tb->position.x - ta->position.x,
-                 tb->position.y - ta->position.y};
-  dis = Vector2Normalize(dis);
-  dis.x *= overlap;
-  dis.y *= overlap;
-  ta->position.x -= dis.x;
-  ta->position.y -= dis.y;
-  return false;
+  output->normal = Vector2Normalize(proj);
+  output->distance = distance;
+  output->ta = ta;
+  output->tb = tb;
+
+  return true;
 }
 
 uint8_t collision_overlap(Vector2 p, Collider *a, Collider *b) {
@@ -132,13 +161,17 @@ uint8_t collision_rb(Vector2 pA, Vector2 pB, Collider *cA, Collider *cB,
         Vector2 impulse = Vector2Scale(normal, impulseMagnitude);
         rbA->speed =
             Vector2Subtract(rbA->speed, Vector2Scale(impulse, invMassA));
-        rbB->speed =
-            Vector2Add(rbB->speed, Vector2Scale(impulse, invMassB));
+        rbB->speed = Vector2Add(rbB->speed, Vector2Scale(impulse, invMassB));
         return true;
       }
     }
   }
   return false;
+}
+
+void resolve_collision(Collision *input) {
+  input->ta->position.x -= input->normal.x * input->distance;
+  input->ta->position.y -= input->normal.y * input->distance;
 }
 
 void ecs_collision_system(Registry *r, Entity e) {
@@ -154,6 +187,8 @@ void ecs_collision_system(Registry *r, Entity e) {
     Transform2 *tb = ecs_get(r, other, Transform2);
     Collider *cb = ecs_get(r, other, Collider);
 
+    Collision collision;
+    uint8_t overlap = 0;
     if (ca->solid && cb->solid) {
       int rb = false;
       RigidBody rbZero = {0};
@@ -168,9 +203,11 @@ void ecs_collision_system(Registry *r, Entity e) {
         rb = true;
       }
 
-      if (!rb)
-        ca->overlap |= collision_sat(ta, ca, tb, cb);
-      else
+      if (!rb) {
+        overlap = collision_sat(ta, ca, tb, cb, &collision);
+        ca->overlap |= overlap;
+        cb->overlap |= overlap;
+      } else
         ca->overlap |=
             (collision_rb(ta->position, tb->position, ca, cb, rbA, rbB) ||
              collision_rb(ta->position, tb->position, ca, cb, rbA, rbB));
@@ -178,5 +215,8 @@ void ecs_collision_system(Registry *r, Entity e) {
       ca->overlap |= (collision_overlap(ta->position, ca, cb) ||
                       collision_overlap(tb->position, cb, ca));
     }
+
+    if (overlap)
+      resolve_collision(&collision);
   }
 }
