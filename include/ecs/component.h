@@ -13,9 +13,6 @@ typedef struct {
 } EntityData;
 #define ENTITYDATA_ACTIVE {1, 1}
 
-void EntityEnable(ECS *ecs, Entity e, uint8_t active);
-void EntityVisible(ECS *ecs, Entity e, uint8_t visible);
-
 typedef struct {
   Vector2 position;
   Vector2 scale;

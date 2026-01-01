@@ -1,11 +1,11 @@
 #include <ecs/component.h>
 
-void EntityEnable(ECS *ecs, Entity e, uint8_t active) {
+void EcsEntitySetActive(ECS *ecs, Entity e, uint8_t active) {
   EntityData *edata = EcsGet(ecs, e, EntityData);
   uint8_t prev = edata->active;
   edata->active = active;
-  if (EcsHasComponent(ecs, e, EcsSignature(ecs, Behaviour)) && active != prev) {
-    Behaviour *beh = EcsGet(ecs, e, Behaviour);
+  Behaviour *beh = EcsGetOptional(ecs, e, Behaviour);
+  if (beh && active != prev) {
     if (active) {
       if (beh->OnEnable)
         beh->OnEnable(ecs, e);
@@ -14,7 +14,21 @@ void EntityEnable(ECS *ecs, Entity e, uint8_t active) {
   }
 }
 
-void EntityVisible(ECS *ecs, Entity e, uint8_t visible) {
+uint8_t EcsEntityIsActive(ECS *ecs, Entity e) {
+  EntityData *edata = EcsGetOptional(ecs, e, EntityData);
+  if (!edata)
+    return true;
+  return edata->active;
+}
+
+void EcsEntityVisible(ECS *ecs, Entity e, uint8_t visible) {
   EntityData *edata = EcsGet(ecs, e, EntityData);
   edata->visible = visible;
+}
+
+uint8_t EcsEntityIsVisible(ECS *ecs, Entity e) {
+  EntityData *edata = EcsGetOptional(ecs, e, EntityData);
+  if (!edata)
+    return true;
+  return edata->visible;
 }

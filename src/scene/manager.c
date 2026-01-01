@@ -14,7 +14,7 @@ Entity EcsEntityData(ECS *ecs) {
 }
 
 GameScene SceneStart(uint16_t max_entities, Camera2D camera) {
-  ECS *ecs = EcsCreate(max_entities);
+  ECS *ecs = EcsRegistry(max_entities);
 
   EcsComponent(ecs, EntityData);
   EcsComponent(ecs, Transform2);

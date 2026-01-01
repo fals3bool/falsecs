@@ -14,11 +14,17 @@ typedef struct {
   Signature mask;
 } System;
 
-ECS *EcsCreate(uint16_t max_entities);
+ECS *EcsRegistry(uint16_t max_entities);
 void EcsFree(ECS *ecs);
 
 Entity EcsEntity(ECS *ecs);
 void EcsEntityDestroy(ECS *ecs, Entity e);
+
+void EcsEntitySetActive(ECS *ecs, Entity e, uint8_t active);
+uint8_t EcsEntityIsActive(ECS *ecs, Entity e);
+
+void EcsEntitySetVisible(ECS *ecs, Entity e, uint8_t visible);
+uint8_t EcsEntityIsVisible(ECS *ecs, Entity e);
 
 // non-object-oriented encapsulation
 Entity EcsEntityCount(ECS *ecs);
@@ -42,10 +48,14 @@ Entity EcsEntityCount(ECS *ecs);
 #define EcsGet(registry, entity, C)                                            \
   (C *)EcsGetComponent(registry, entity, EcsCID(registry, #C))
 
+#define EcsGetOptional(registry, entity, C)                                    \
+  (C *)EcsGetComponentOptional(registry, entity, EcsCID(registry, #C))
+
 Component EcsRegisterComponent(ECS *ecs, char *name, size_t size);
 void EcsAddComponent(ECS *ecs, Entity e, Component id, void *data);
 void EcsRemoveComponent(ECS *ecs, Entity e, Component id);
 void *EcsGetComponent(ECS *ecs, Entity e, Component id);
+void *EcsGetComponentOptional(ECS *ecs, Entity e, Component id);
 
 int EcsHasComponent(ECS *ecs, Entity e, Signature mask);
 Component EcsCID(ECS *ecs, char *name);
@@ -96,6 +106,7 @@ typedef enum {
   EcsAddSystem(ecs, script, layer, FOR_EACH(EcsSignature, (ecs), __VA_ARGS__))
 
 void EcsAddSystem(ECS *ecs, Script s, EcsLayer ly, Signature mask);
+uint8_t EcsCanRun(ECS *ecs, System *system, Entity e, EcsLayer ly);
 void EcsRun(ECS *ecs, EcsLayer ly);
 
 #endif

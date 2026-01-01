@@ -37,7 +37,7 @@ void EcsFreeEntities(ECS *ecs);
 
 void EcsFreeComponents(ECS *ecs);
 
-ECS *EcsCreate(uint16_t max_entities) {
+ECS *EcsRegistry(uint16_t max_entities) {
   ECS *ecs = malloc(sizeof(ECS));
   ecs->max_free = 0;
   ecs->components = NULL;
@@ -128,6 +128,13 @@ void EcsAddComponent(ECS *ecs, Entity e, Component id, void *data) {
 
 void *EcsGetComponent(ECS *ecs, Entity e, Component id) {
   assert(id < ecs->comp_count && "Component does not exist!");
+  assert(EcsHasComponent(ecs, e, (1 << id)) &&
+         "Entity does not have the requiered component!");
+  return ecs->components[id].list + e * ecs->components[id].size;
+}
+
+void *EcsGetComponentOptional(ECS *ecs, Entity e, Component id) {
+  assert(id < ecs->comp_count && "Component does not exist!");
   if (!EcsHasComponent(ecs, e, (1 << id)))
     return NULL;
   return ecs->components[id].list + e * ecs->components[id].size;
@@ -181,13 +188,21 @@ void EcsAddSystem(ECS *ecs, Script s, EcsLayer ly, Signature mask) {
   ecs->systems[ly].list[cur].mask = mask;
 }
 
+uint8_t EcsCanRun(ECS *ecs, System *system, Entity e, EcsLayer ly) {
+  if (!EcsHasComponent(ecs, e, system->mask))
+    return 0;
+  if (ly < EcsOnRender)
+    return EcsEntityIsActive(ecs, e);
+  else
+    return EcsEntityIsVisible(ecs, e);
+}
+
 void EcsRun(ECS *ecs, EcsLayer ly) {
   size_t len = ecs->systems[ly].size;
   for (size_t s = 0; s < len; s++) {
     for (Entity e = 0; e < ecs->entity_count; e++) {
-      if (!EcsHasComponent(ecs, e, ecs->systems[ly].list[s].mask))
-        continue;
-      ecs->systems[ly].list[s].run(ecs, e);
+      if (EcsCanRun(ecs, &ecs->systems[ly].list[s], e, ly))
+        ecs->systems[ly].list[s].run(ecs, e);
     }
   }
 }

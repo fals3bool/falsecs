@@ -29,7 +29,7 @@ void DebugColliderSystem(ECS *ecs, Entity e) {
 // COLLISIONS
 
 static uint8_t SatProj(Transform2 *ta, Collider *ca, Transform2 *tb,
-                        Collider *cb, float *min_distance, Vector2 *axis) {
+                       Collider *cb, float *min_distance, Vector2 *axis) {
   for (uint8_t i = 0; i < ca->vertices; i++) {
     uint8_t j = (i + 1) % ca->vertices;
 
@@ -62,8 +62,8 @@ static uint8_t SatProj(Transform2 *ta, Collider *ca, Transform2 *tb,
   return true;
 }
 
-uint8_t CollisionSat(Transform2 *ta, Collider *ca, Transform2 *tb,
-                      Collider *cb, Collision *output) {
+uint8_t CollisionSat(Transform2 *ta, Collider *ca, Transform2 *tb, Collider *cb,
+                     Collision *output) {
   float distance = INFINITY;
   Vector2 proj = {0, 0};
 
@@ -88,7 +88,7 @@ uint8_t CollisionSat(Transform2 *ta, Collider *ca, Transform2 *tb,
 }
 
 void ResolveCollision(Collision *input, Transform2 *ta, RigidBody *ra,
-                       Transform2 *tb, RigidBody *rb) {
+                      Transform2 *tb, RigidBody *rb) {
   float invmassA = (ra && ra->type == RIGIDBODY_DYNAMIC) ? ra->invmass : 0;
   float invmassB = (rb && rb->type == RIGIDBODY_DYNAMIC) ? rb->invmass : 0;
   if (invmassA + invmassB == 0)
@@ -122,6 +122,8 @@ void CollisionSystem(ECS *ecs, Entity self) {
   Signature mask = EcsSignature(ecs, Transform2) & EcsSignature(ecs, Collider);
   for (Entity other = self + 1; other < EcsEntityCount(ecs); ++other) {
     if (!EcsHasComponent(ecs, other, mask))
+      continue;
+    if (!EcsEntityIsEnabled(ecs, other))
       continue;
     Transform2 *tb = EcsGet(ecs, other, Transform2);
     Collider *cb = EcsGet(ecs, other, Collider);

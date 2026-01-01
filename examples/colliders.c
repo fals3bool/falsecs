@@ -94,7 +94,7 @@ void LoadScene(ECS *ecs) {
 
   // COLLIDER: [SOLID]
   // BODY: [NONE]
-  Entity A = EcsEntityData(ecs);
+  Entity A = EcsEntity(ecs);
   EcsAdd(ecs, A, Transform2, TRANSFORM_POS(-250, 100));
   Collider colA = ColliderSolid(5, 16);
   colA.OnCollision = EventOnCollision;
@@ -104,7 +104,7 @@ void LoadScene(ECS *ecs) {
 
   // COLLIDER: [TRIGGER]
   // BODY: [NONE]
-  Entity B = EcsEntityData(ecs);
+  Entity B = EcsEntity(ecs);
   EcsAdd(ecs, B, Transform2, TRANSFORM_POS(-150, -100));
   Collider colB = ColliderTrigger(4, 20);
   colB.OnCollision = EventOnCollision;
@@ -114,7 +114,7 @@ void LoadScene(ECS *ecs) {
 
   // COLLIDER: [SOLID]
   // BODY: [DYNAMIC]
-  Entity C = EcsEntityData(ecs);
+  Entity C = EcsEntity(ecs);
   EcsAdd(ecs, C, Transform2, TRANSFORM_POS(0, 100));
   Collider colC = ColliderSolid(6, 18);
   EcsAddExt(ecs, C, Collider, colC);
@@ -126,7 +126,7 @@ void LoadScene(ECS *ecs) {
 
   // COLLIDER: [SOLID]
   // BODY: [STATIC]
-  Entity D = EcsEntityData(ecs);
+  Entity D = EcsEntity(ecs);
   EcsAdd(ecs, D, Transform2, TRANSFORM_POS(150, -100));
   Collider colD = ColliderSolid(7, 24);
   EcsAddExt(ecs, D, Collider, colD);
@@ -136,7 +136,7 @@ void LoadScene(ECS *ecs) {
 
   // COLLIDER: [SOLID]
   // BODY: [KINEMATIC]
-  Entity E = EcsEntityData(ecs);
+  Entity E = EcsEntity(ecs);
   EcsAdd(ecs, E, Transform2, TRANSFORM_POS(250, 100));
   Collider colE = ColliderSolid(4, 24);
   EcsAddExt(ecs, E, Collider, colE);
@@ -145,7 +145,7 @@ void LoadScene(ECS *ecs) {
   EcsScript(ecs, E, ScriptShowData, EcsOnRender);
 
   // PLAYER
-  Entity P = EcsEntityData(ecs);
+  Entity P = EcsEntity(ecs);
   EcsAdd(ecs, P, Transform2, TRANSFORM_ZERO);
   Collider colP = ColliderSolid(3, 22);
   colP.OnCollision = EventOnCollision;
