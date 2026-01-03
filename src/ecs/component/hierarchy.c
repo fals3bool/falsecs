@@ -96,3 +96,16 @@ void EntityDestroy(ECS *ecs, Entity e) {
 
   EcsEntityFree(ecs, e);
 }
+
+void EntityDestroyRecursive(ECS *ecs, Entity e) {
+  Parent *parent = EcsGetOptional(ecs, e, Parent);
+  if (parent)
+    EntityRemoveChild(ecs, parent->entity, e);
+
+  Children *children = EcsGetOptional(ecs, e, Children);
+  if (children)
+    for (Entity i = 0; i < children->count; i++)
+      EntityDestroyRecursive(ecs, children->list[i]);
+
+  EcsEntityFree(ecs, e);
+}

@@ -18,6 +18,7 @@ ECS *EcsRegistry(uint16_t max_entities);
 void EcsFree(ECS *ecs);
 
 Entity EcsEntity(ECS *ecs);
+uint8_t EcsEntityIsAlive(ECS *ecs, Entity e);
 void EcsEntityFree(ECS *ecs, Entity e);
 
 // non-object-oriented encapsulation
@@ -60,7 +61,7 @@ void EcsRemoveComponent(ECS *ecs, Entity e, Component id);
 void *EcsGetComponent(ECS *ecs, Entity e, Component id);
 void *EcsGetComponentOptional(ECS *ecs, Entity e, Component id);
 
-int EcsHasComponent(ECS *ecs, Entity e, Signature mask);
+uint8_t EcsHasComponent(ECS *ecs, Entity e, Signature mask);
 Component EcsCID(ECS *ecs, char *name);
 
 // ######### //

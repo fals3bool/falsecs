@@ -15,14 +15,15 @@ typedef struct {
 
 typedef struct {
   Vector2 position;
-  Vector2 localPosition;
   Vector2 scale;
-  Vector2 localScale;
   float rotation;
+  Vector2 localPosition;
+  Vector2 localScale;
   float localRotation;
 } Transform2;
-#define TRANSFORM_ZERO {{0, 0}, {1, 1}, 0}
-#define TRANSFORM_POS(x, y) {{x, y}, {1, 1}, 0}
+#define TRANSFORM_ZERO {{0, 0}, {1, 1}, 0, {0, 0}, {1, 1}, 0}
+#define TRANSFORM_POS(x, y) {{x, y}, {1, 1}, 0, {0, 0}, {1, 1}, 0}
+#define TRANSFORM_LOCALPOS(x, y) {{0, 0}, {1, 1}, 0, {x, y}, {1, 1}, 0}
 
 typedef struct {
   Vector2 normal;
@@ -109,5 +110,6 @@ void EntityAddChild(ECS *ecs, Entity e, Entity c);
 void EntityRemoveChild(ECS *ecs, Entity e, Entity c);
 
 void EntityDestroy(ECS *ecs, Entity e);
+void EntityDestroyRecursive(ECS *ecs, Entity e);
 
 #endif

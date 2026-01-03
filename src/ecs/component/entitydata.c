@@ -25,6 +25,8 @@ uint8_t EntityIsActive(ECS *ecs, Entity e) {
   EntityData *edata = EcsGetOptional(ecs, e, EntityData);
   if (edata)
     return edata->active;
+  if (!EcsEntityIsAlive(ecs, e))
+    return false;
 
   Parent *parent = EcsGetOptional(ecs, e, Parent);
   while (parent)
@@ -47,6 +49,8 @@ uint8_t EntityIsVisible(ECS *ecs, Entity e) {
   EntityData *edata = EcsGetOptional(ecs, e, EntityData);
   if (edata)
     return edata->visible;
+  if (!EcsEntityIsAlive(ecs, e))
+    return false;
 
   Parent *parent = EcsGetOptional(ecs, e, Parent);
   while (parent)

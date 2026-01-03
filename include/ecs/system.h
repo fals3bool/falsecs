@@ -10,6 +10,7 @@ void BehaviourFixedSystem(ECS *ecs, Entity e);
 void BehaviourRenderSystem(ECS *ecs, Entity e);
 void BehaviourGuiSystem(ECS *ecs, Entity e);
 
+void HierarchyTransform(ECS *ecs, Entity e);
 void TransformColliderSystem(ECS *ecs, Entity e);
 void CollisionSystem(ECS *ecs, Entity e);
 void DebugColliderSystem(ECS *ecs, Entity e);

@@ -84,6 +84,13 @@ Entity EcsEntity(ECS *ecs) {
   return e;
 }
 
+uint8_t EcsEntityIsAlive(ECS *ecs, Entity e) {
+  for (Entity i = 0; i < ecs->free_count; i++)
+    if (ecs->free_entities[i] == e)
+      return 0;
+  return 1;
+}
+
 void EcsEntityFree(ECS *ecs, Entity e) {
   for (Component c = 0; c < ecs->comp_count; c++)
     EcsRemoveComponent(ecs, e, c);
@@ -150,7 +157,7 @@ void EcsRemoveComponent(ECS *ecs, Entity e, Component id) {
   ecs->entities[e] &= ~(1 << id);
 }
 
-int EcsHasComponent(ECS *ecs, Entity e, Signature mask) {
+uint8_t EcsHasComponent(ECS *ecs, Entity e, Signature mask) {
   return (ecs->entities[e] & mask) == mask;
 }
 
