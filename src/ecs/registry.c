@@ -84,7 +84,7 @@ Entity EcsEntity(ECS *ecs) {
   return e;
 }
 
-void EntityDestroy(ECS *ecs, Entity e) {
+void EcsEntityFree(ECS *ecs, Entity e) {
   for (Component c = 0; c < ecs->comp_count; c++)
     EcsRemoveComponent(ecs, e, c);
   ecs->free_entities[ecs->free_count++] = e;

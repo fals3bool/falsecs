@@ -43,6 +43,9 @@ uint8_t EntitySetChild(ECS *ecs, Entity e, Entity c) {
     list[0] = c;
     EcsAdd(ecs, e, Children, {list, 1});
   }
+
+  EntitySetActive(ecs, c, EntityIsActive(ecs, e));
+  EntitySetVisible(ecs, c, EntityIsVisible(ecs, e));
   return true;
 }
 
@@ -71,4 +74,25 @@ void EntityRemoveChild(ECS *ecs, Entity e, Entity c) {
 
   if (children->count == 0)
     EcsRemove(ecs, e, Children);
+}
+
+void EntityRemoveParent(ECS *ecs, Entity e) {
+  Parent *parent = EcsGetOptional(ecs, e, Parent);
+  if (!parent)
+    return;
+  EntityRemoveChild(ecs, e, parent->entity);
+  EcsRemove(ecs, e, Parent);
+}
+
+void EntityDestroy(ECS *ecs, Entity e) {
+  Parent *parent = EcsGetOptional(ecs, e, Parent);
+  if (parent)
+    EntityRemoveChild(ecs, parent->entity, e);
+
+  Children *children = EcsGetOptional(ecs, e, Children);
+  if (children)
+    for (Entity i = 0; i < children->count; i++)
+      EntityRemoveParent(ecs, children->list[i]);
+
+  EcsEntityFree(ecs, e);
 }

@@ -108,4 +108,6 @@ void EntityAddParent(ECS *ecs, Entity e, Entity p);
 void EntityAddChild(ECS *ecs, Entity e, Entity c);
 void EntityRemoveChild(ECS *ecs, Entity e, Entity c);
 
+void EntityDestroy(ECS *ecs, Entity e);
+
 #endif

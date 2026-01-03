@@ -18,7 +18,7 @@ ECS *EcsRegistry(uint16_t max_entities);
 void EcsFree(ECS *ecs);
 
 Entity EcsEntity(ECS *ecs);
-void EntityDestroy(ECS *ecs, Entity e);
+void EcsEntityFree(ECS *ecs, Entity e);
 
 // non-object-oriented encapsulation
 Entity EcsEntityCount(ECS *ecs);

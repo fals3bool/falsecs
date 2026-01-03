@@ -5,7 +5,8 @@
 void printHierarchy(ECS *ecs, Entity e) {
   Parent *parent = EcsGetOptional(ecs, e, Parent);
   Children *children = EcsGetOptional(ecs, e, Children);
-  printf("Hierarchy Relations of [Entity: %d]\n", e);
+  printf("Hierarchy Relations of [Entity: %d] {%s}\n", e,
+         EntityIsActive(ecs, e) ? "ACTIVE" : "NOT ACTIVE");
   if (parent)
     printf("Parent -> %d\n", parent->entity);
   if (children) {
@@ -21,10 +22,14 @@ int main(void) {
   ECS *ecs = EcsRegistry(32);
   EcsComponent(ecs, Parent);
   EcsComponent(ecs, Children);
+  EcsComponent(ecs, EntityData);
 
   Entity A = EcsEntity(ecs);
   Entity B = EcsEntity(ecs);
   Entity C = EcsEntity(ecs);
+
+  EcsAdd(ecs, A, EntityData, ENTITYDATA_ACTIVE);
+  EcsAdd(ecs, B, EntityData, ENTITYDATA_ACTIVE);
 
   EntityAddChild(ecs, B, A);
   EntityAddChild(ecs, B, C);
@@ -40,11 +45,17 @@ int main(void) {
   EntityAddParent(ecs, C, B); // remove child from A, move to B
   EntityAddParent(ecs, A, C); // remove child from B, move to C
   EntityAddParent(ecs, B, A); // cannot
-  
-  EntityDestroy(ecs, B);
-  
+
+  EntitySetActive(ecs, C, false); // C will still be active because it does not
+                                  // have EntityData and parent (B) is active
+  EntitySetActive(ecs, B, true);  // All entities are now active
+
   printHierarchy(ecs, A);
-  // printHierarchy(ecs, B);
+  printHierarchy(ecs, B);
+  printHierarchy(ecs, C);
+
+  printf("Destroy B id:%d\n\n", B);
+  EntityDestroy(ecs, B); // destroy B, remove parent from C
   printHierarchy(ecs, C);
 
   return 0;
