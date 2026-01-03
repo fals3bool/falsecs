@@ -84,7 +84,14 @@ Entity EcsEntity(ECS *ecs) {
   return e;
 }
 
-void EcsEntityDestroy(ECS *ecs, Entity e) {
+uint8_t EcsEntityIsAlive(ECS *ecs, Entity e) {
+  for (Entity i = 0; i < ecs->free_count; i++)
+    if (ecs->free_entities[i] == e)
+      return 0;
+  return 1;
+}
+
+void EcsEntityFree(ECS *ecs, Entity e) {
   for (Component c = 0; c < ecs->comp_count; c++)
     EcsRemoveComponent(ecs, e, c);
   ecs->free_entities[ecs->free_count++] = e;
@@ -134,7 +141,8 @@ void *EcsGetComponent(ECS *ecs, Entity e, Component id) {
 }
 
 void *EcsGetComponentOptional(ECS *ecs, Entity e, Component id) {
-  assert(id < ecs->comp_count && "Component does not exist!");
+  if(id >= ecs->comp_count)
+    return NULL;
   if (!EcsHasComponent(ecs, e, (1 << id)))
     return NULL;
   return ecs->components[id].list + e * ecs->components[id].size;
@@ -150,7 +158,7 @@ void EcsRemoveComponent(ECS *ecs, Entity e, Component id) {
   ecs->entities[e] &= ~(1 << id);
 }
 
-int EcsHasComponent(ECS *ecs, Entity e, Signature mask) {
+uint8_t EcsHasComponent(ECS *ecs, Entity e, Signature mask) {
   return (ecs->entities[e] & mask) == mask;
 }
 
@@ -192,9 +200,9 @@ uint8_t EcsCanRun(ECS *ecs, System *system, Entity e, EcsLayer ly) {
   if (!EcsHasComponent(ecs, e, system->mask))
     return 0;
   if (ly < EcsOnRender)
-    return EcsEntityIsActive(ecs, e);
+    return EntityIsActive(ecs, e);
   else
-    return EcsEntityIsVisible(ecs, e);
+    return EntityIsVisible(ecs, e);
 }
 
 void EcsRun(ECS *ecs, EcsLayer ly) {

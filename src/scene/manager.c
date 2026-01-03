@@ -34,6 +34,7 @@ GameScene SceneStart(uint16_t max_entities, Camera2D camera) {
   EcsSystem(ecs, BehaviourRenderSystem, EcsOnRender, Behaviour);
   EcsSystem(ecs, BehaviourGuiSystem, EcsOnGui, Behaviour);
 
+  EcsSystem(ecs, HierarchyTransform, EcsOnUpdate, Transform2, Children);
   EcsSystem(ecs, TransformColliderSystem, EcsOnUpdate, Transform2, Collider);
   EcsSystem(ecs, CollisionSystem, EcsOnUpdate, Transform2, Collider);
 

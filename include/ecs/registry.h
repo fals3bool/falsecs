@@ -18,16 +18,17 @@ ECS *EcsRegistry(uint16_t max_entities);
 void EcsFree(ECS *ecs);
 
 Entity EcsEntity(ECS *ecs);
-void EcsEntityDestroy(ECS *ecs, Entity e);
-
-void EcsEntitySetActive(ECS *ecs, Entity e, uint8_t active);
-uint8_t EcsEntityIsActive(ECS *ecs, Entity e);
-
-void EcsEntitySetVisible(ECS *ecs, Entity e, uint8_t visible);
-uint8_t EcsEntityIsVisible(ECS *ecs, Entity e);
+uint8_t EcsEntityIsAlive(ECS *ecs, Entity e);
+void EcsEntityFree(ECS *ecs, Entity e);
 
 // non-object-oriented encapsulation
 Entity EcsEntityCount(ECS *ecs);
+
+void EntitySetActive(ECS *ecs, Entity e, uint8_t active);
+uint8_t EntityIsActive(ECS *ecs, Entity e);
+
+void EntitySetVisible(ECS *ecs, Entity e, uint8_t visible);
+uint8_t EntityIsVisible(ECS *ecs, Entity e);
 
 // ########### //
 //  COMPONENT  //
@@ -51,13 +52,16 @@ Entity EcsEntityCount(ECS *ecs);
 #define EcsGetOptional(registry, entity, C)                                    \
   (C *)EcsGetComponentOptional(registry, entity, EcsCID(registry, #C))
 
+#define EcsRemove(ecs, entity, C)                                              \
+  EcsRemoveComponent(ecs, entity, EcsCID(ecs, #C))
+
 Component EcsRegisterComponent(ECS *ecs, char *name, size_t size);
 void EcsAddComponent(ECS *ecs, Entity e, Component id, void *data);
 void EcsRemoveComponent(ECS *ecs, Entity e, Component id);
 void *EcsGetComponent(ECS *ecs, Entity e, Component id);
 void *EcsGetComponentOptional(ECS *ecs, Entity e, Component id);
 
-int EcsHasComponent(ECS *ecs, Entity e, Signature mask);
+uint8_t EcsHasComponent(ECS *ecs, Entity e, Signature mask);
 Component EcsCID(ECS *ecs, char *name);
 
 // ######### //
@@ -105,8 +109,9 @@ typedef enum {
 #define EcsSystem(ecs, script, layer, ...)                                     \
   EcsAddSystem(ecs, script, layer, FOR_EACH(EcsSignature, (ecs), __VA_ARGS__))
 
+#define EcsSystemGlobal(ecs, script, layer) EcsAddSystem(ecs, script, layer, 0);
+
 void EcsAddSystem(ECS *ecs, Script s, EcsLayer ly, Signature mask);
-uint8_t EcsCanRun(ECS *ecs, System *system, Entity e, EcsLayer ly);
 void EcsRun(ECS *ecs, EcsLayer ly);
 
 #endif

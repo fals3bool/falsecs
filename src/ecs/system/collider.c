@@ -123,7 +123,7 @@ void CollisionSystem(ECS *ecs, Entity self) {
   for (Entity other = self + 1; other < EcsEntityCount(ecs); ++other) {
     if (!EcsHasComponent(ecs, other, mask))
       continue;
-    if (!EcsEntityIsActive(ecs, other))
+    if (!EntityIsActive(ecs, other))
       continue;
     Transform2 *tb = EcsGet(ecs, other, Transform2);
     Collider *cb = EcsGet(ecs, other, Collider);

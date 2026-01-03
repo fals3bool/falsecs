@@ -32,7 +32,7 @@ int main(void) {
   PRINT_ID(e1);
   Entity e2 = EcsEntity(world);
   PRINT_ID(e2);
-  EcsEntityDestroy(world, e1);
+  EcsEntityFree(world, e1);
   Entity e3 = EcsEntity(world);
   PRINT_ID(e3);
   e1 = EcsEntity(world);
