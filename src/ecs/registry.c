@@ -141,7 +141,8 @@ void *EcsGetComponent(ECS *ecs, Entity e, Component id) {
 }
 
 void *EcsGetComponentOptional(ECS *ecs, Entity e, Component id) {
-  assert(id < ecs->comp_count && "Component does not exist!");
+  if(id >= ecs->comp_count)
+    return NULL;
   if (!EcsHasComponent(ecs, e, (1 << id)))
     return NULL;
   return ecs->components[id].list + e * ecs->components[id].size;

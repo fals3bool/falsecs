@@ -63,7 +63,9 @@ int main(void) {
 
   EntitySetActive(ecs, C, false); // C will still be active because it does not
                                   // have EntityData and parent (B) is active
-  EntitySetActive(ecs, B, true);  // All entities are now active
+
+  // Deactivated entities won't be read by systems
+  EntitySetActive(ecs, B, true); // All entities are now active
 
   EcsRun(ecs, 0);
 
@@ -73,8 +75,8 @@ int main(void) {
   EntityForEachChildRecursive(ecs, B, printTree);
 
   printf("Destroy B id:%d\n\n", B);
-  EntityDestroy(ecs, B);          // destroy B, remove parent from C
-  EntityDestroyRecursive(ecs, C); // destroy C and children...
+  EntityDestroy(ecs, B); // destroy B, remove parent from C
+  // EntityDestroyRecursive(ecs, C); // destroy C and children...
 
   EcsRun(ecs, 0);
 
