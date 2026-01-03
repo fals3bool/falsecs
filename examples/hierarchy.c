@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+void printTree(ECS *ecs, Entity e) { printf("^\n[%d]\n", e); }
+
 void printHierarchy(ECS *ecs, Entity e) {
   Parent *parent = EcsGetOptional(ecs, e, Parent);
   Children *children = EcsGetOptional(ecs, e, Children);
@@ -64,6 +66,11 @@ int main(void) {
   EntitySetActive(ecs, B, true);  // All entities are now active
 
   EcsRun(ecs, 0);
+
+  printf("for each:\n");
+  EntityForEachChild(ecs, B, printTree);
+  printf("for each recursive:\n");
+  EntityForEachChildRecursive(ecs, B, printTree);
 
   printf("Destroy B id:%d\n\n", B);
   EntityDestroy(ecs, B);          // destroy B, remove parent from C

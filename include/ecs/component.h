@@ -112,4 +112,7 @@ void EntityRemoveChild(ECS *ecs, Entity e, Entity c);
 void EntityDestroy(ECS *ecs, Entity e);
 void EntityDestroyRecursive(ECS *ecs, Entity e);
 
+void EntityForEachChild(ECS *ecs, Entity e, Script s);
+void EntityForEachChildRecursive(ECS *ecs, Entity e, Script s);
+
 #endif

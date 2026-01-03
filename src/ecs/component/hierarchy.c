@@ -109,3 +109,21 @@ void EntityDestroyRecursive(ECS *ecs, Entity e) {
 
   EcsEntityFree(ecs, e);
 }
+
+void EntityForEachChild(ECS *ecs, Entity e, Script s) {
+  Children *children = EcsGetOptional(ecs, e, Children);
+  if (!children)
+    return;
+  for (Entity i = 0; i < children->count; i++)
+    s(ecs, children->list[i]);
+}
+
+void EntityForEachChildRecursive(ECS *ecs, Entity e, Script s) {
+  Children *children = EcsGetOptional(ecs, e, Children);
+  if (!children)
+    return;
+  for (Entity i = 0; i < children->count; i++) {
+    s(ecs, children->list[i]);
+    EntityForEachChildRecursive(ecs, children->list[i], s);
+  }
+}
