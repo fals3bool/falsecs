@@ -1,6 +1,6 @@
 #include <ecs/component.h>
 
-void EcsEntitySetActive(ECS *ecs, Entity e, uint8_t active) {
+void EntitySetActive(ECS *ecs, Entity e, uint8_t active) {
   EntityData *edata = EcsGet(ecs, e, EntityData);
   uint8_t prev = edata->active;
   edata->active = active;
@@ -14,19 +14,19 @@ void EcsEntitySetActive(ECS *ecs, Entity e, uint8_t active) {
   }
 }
 
-uint8_t EcsEntityIsActive(ECS *ecs, Entity e) {
+uint8_t EntityIsActive(ECS *ecs, Entity e) {
   EntityData *edata = EcsGetOptional(ecs, e, EntityData);
   if (!edata)
     return true;
   return edata->active;
 }
 
-void EcsEntityVisible(ECS *ecs, Entity e, uint8_t visible) {
+void EntityVisible(ECS *ecs, Entity e, uint8_t visible) {
   EntityData *edata = EcsGet(ecs, e, EntityData);
   edata->visible = visible;
 }
 
-uint8_t EcsEntityIsVisible(ECS *ecs, Entity e) {
+uint8_t EntityIsVisible(ECS *ecs, Entity e) {
   EntityData *edata = EcsGetOptional(ecs, e, EntityData);
   if (!edata)
     return true;

@@ -84,7 +84,7 @@ Entity EcsEntity(ECS *ecs) {
   return e;
 }
 
-void EcsEntityDestroy(ECS *ecs, Entity e) {
+void EntityDestroy(ECS *ecs, Entity e) {
   for (Component c = 0; c < ecs->comp_count; c++)
     EcsRemoveComponent(ecs, e, c);
   ecs->free_entities[ecs->free_count++] = e;
@@ -192,9 +192,9 @@ uint8_t EcsCanRun(ECS *ecs, System *system, Entity e, EcsLayer ly) {
   if (!EcsHasComponent(ecs, e, system->mask))
     return 0;
   if (ly < EcsOnRender)
-    return EcsEntityIsActive(ecs, e);
+    return EntityIsActive(ecs, e);
   else
-    return EcsEntityIsVisible(ecs, e);
+    return EntityIsVisible(ecs, e);
 }
 
 void EcsRun(ECS *ecs, EcsLayer ly) {

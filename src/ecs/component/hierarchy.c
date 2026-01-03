@@ -68,4 +68,7 @@ void EntityRemoveChild(ECS *ecs, Entity e, Entity c) {
     if (children->list[i] == c)
       children->list[i] = children->list[--children->count];
   }
+
+  if (children->count == 0)
+    EcsRemove(ecs, e, Children);
 }

@@ -8,7 +8,7 @@ void printHierarchy(ECS *ecs, Entity e) {
   printf("Hierarchy Relations of [Entity: %d]\n", e);
   if (parent)
     printf("Parent -> %d\n", parent->entity);
-  if (children && children->count) {
+  if (children) {
     printf("Children:\n");
     for (Entity e = 0; e < children->count; e++)
       printf(" -> %d\n", children->list[e]);
@@ -41,8 +41,10 @@ int main(void) {
   EntityAddParent(ecs, A, C); // remove child from B, move to C
   EntityAddParent(ecs, B, A); // cannot
   
+  EntityDestroy(ecs, B);
+  
   printHierarchy(ecs, A);
-  printHierarchy(ecs, B);
+  // printHierarchy(ecs, B);
   printHierarchy(ecs, C);
 
   return 0;
