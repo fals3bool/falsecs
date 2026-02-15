@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-void *MemReallocArray(void *ptr, size_t initial, size_t count, size_t size) {
-  if (ptr == NULL || initial <= 1)
-    return malloc(size * count);
-  return realloc(ptr, size * count);
+void *MemReallocArray(void *ptr, size_t total, size_t count, size_t size) {
+  if (ptr == NULL || count <= 1)
+    return malloc(size * total);
+  return realloc(ptr, size * total);
 }
 
 size_t MemEnsureCapacity(void **array, size_t total, size_t count,
@@ -16,7 +16,7 @@ size_t MemEnsureCapacity(void **array, size_t total, size_t count,
     size_t new_total = total ? total * 2 : 4;
     while (new_total < count)
       new_total *= 2;
-    void *new_array = MemReallocArray(*array, count, new_total, size);
+    void *new_array = MemReallocArray(*array, new_total, count, size);
     if (!new_array)
       return 0;
 
