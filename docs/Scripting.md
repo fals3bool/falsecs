@@ -48,7 +48,6 @@ AddScript(ecs, player, PlayerUpdate, EcsOnUpdate);
 
 - Use scripts for entity-specific logic (player controls, AI behavior)
 - Use systems for general logic that processes many entities (movement, rendering)
-- Scripts have access to all entity components via `GetComponent()`
 - Scripts run only on active/visible entities depending on the phase
 
 See [Systems](Systems.md) for information about registering built-in Behaviour systems

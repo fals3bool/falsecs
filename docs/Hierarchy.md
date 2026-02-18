@@ -15,7 +15,7 @@ While you could manually add components, use the hierarchy API for proper bidire
 // Entity B becomes child of A
 AddParent(ecs, entityB, entityA);
 
-// Entity A becomes child of B (equivalent to above)
+// Equivalent function
 AddChild(ecs, entityA, entityB);
 ```
 
@@ -46,12 +46,14 @@ AddComponent(ecs, child, Transform2, TransformLocalPos(50, 25));
 AddChild(ecs, parent, child);
 ```
 
+(The `HierarchyTransformSystem` is necessary for this to work properly)
+
+See [Systems](Systems.md) for more information about hierarchy systems.
+
 ### Local vs World Transforms
 
 - **World transforms**: Final position/scale/rotation after applying parent transforms
 - **Local transforms**: Position/scale/rotation relative to parent
-
-See [Systems](Systems.md) for more information about hierarchy systems.
 
 ```C
 Transform2 *t = GetComponent(ecs, child, Transform2);

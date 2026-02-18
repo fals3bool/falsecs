@@ -30,7 +30,7 @@ Use World when you need:
 int main(void) {
     InitWindow(800, 450, "Getting Started with Gearecs");
 
-    ECS *world = EcsWorld(camera);
+    ECS *world = EcsWorld();
     
     // Your game logic here
     

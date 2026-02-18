@@ -6,16 +6,14 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-#################################
-## MULTIPLATFORM CONFIGURATION ##
-#################################
-
-# Default build type
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
 
-# WEB
+#################################
+## MULTIPLATFORM CONFIGURATION ##
+#################################
+
 if(EMSCRIPTEN)
   set(PLATFORM Web CACHE STRING "" FORCE)
   set(OPENGL_VERSION "ES 3.0" CACHE STRING "" FORCE)
@@ -34,24 +32,34 @@ endif()
 
 if(MSVC)
   add_compile_options(/W4)
-else()
+
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(/Zi /Od)
+  elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_options(/O2)
+  endif()
+
+else() # GCC / Clang
   add_compile_options(-Wall -Wextra -Wpedantic)
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(-g -O0)
   elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_compile_options(-O3)
+    add_compile_options(-O2)
   endif()
 endif()
 
-# Adding Raylib
+##########################
+## RAYLIB FETCH CONTENT ##
+##########################
+
 include(FetchContent)
 set(FETCHCONTENT_QUIET FALSE)
-set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE) # don't build the supplied examples
-set(BUILD_GAMES    OFF CACHE BOOL "" FORCE) # don't build the supplied example games
+set(BUILD_EXAMPLES         OFF CACHE BOOL "" FORCE)
+set(BUILD_GAMES            OFF CACHE BOOL "" FORCE)
 set(SUPPORT_BUSY_WAIT_LOOP OFF CACHE BOOL "" FORCE)
 set(SUPPORT_FILEFORMAT_GIF OFF CACHE BOOL "" FORCE)
-set(USE_EXTERNAL_GLFW OFF CACHE BOOL "" FORCE)
+set(USE_EXTERNAL_GLFW      OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
   raylib
   GIT_REPOSITORY "https://github.com/raysan5/raylib.git"
@@ -70,7 +78,10 @@ target_include_directories(${PROJECT_NAME}
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(${PROJECT_NAME} raylib)
 
-# Examples
+######################
+## GEARECS EXAMPLES ##
+######################
+
 option(GEARECS_BUILD_EXAMPLES "Build gearecs examples" ON)
 
 if(GEARECS_BUILD_EXAMPLES)

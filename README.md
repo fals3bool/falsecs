@@ -24,9 +24,9 @@ Enables highly performant, cache-friendly code with excellent modularity and reu
 
 ## Quick Start
 
-### Installation
+### CMake
 
-`CMake`
+`Fetch Content`
 
 ```
 cmake_minimum_required(VERSION 3.25)
@@ -43,7 +43,19 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(gearecs)
 ```
 
-### Basic Example
+`Build`
+
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+cmake --build build
+```
+
+```
+emcmake cmake -S . -B build -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+cmake --build build
+```
+
+## Basic Example
 
 ```c
 #include <gearecs.h>
@@ -55,49 +67,48 @@ FetchContent_MakeAvailable(gearecs)
 void MoveScript(ECS *ecs, Entity self) {
   RigidBody *rb = GetComponent(ecs, self, RigidBody);
   Transform2 *t = GetComponent(ecs, self, Transform2);
-  
+
+  // Move on mouse button pressed
   if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
     Vector2 direction = {cosf(t->rotation), sinf(t->rotation)};
     ApplyImpulse(rb, Vector2Scale(direction, SPEED));
   }
 
+  // Look at mouse position
   Camera2D *cam = GetComponent(ecs, 0, Camera2D);
   Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), *cam);
-  Vector2 mouseDirection = {
-    mouseWorld.x - t->position.x, 
-    mouseWorld.y - t->position.y
-  };
+  Vector2 mouseDirection = {mouseWorld.x - t->position.x,
+                            mouseWorld.y - t->position.y};
   t->rotation = atan2f(mouseDirection.y, mouseDirection.x);
 }
 
 int main(void) {
   // Raylib window and camera
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GearECS Example");
-  Camera2D camera = {
-      {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f}, {0, 0}, 0, 1.0f};
 
   // Registry
-  ECS *world = EcsWorld(camera);
+  ECS *world = EcsWorld();
 
   // Player entity
-  Texture tex = LoadTexture("res/example.png");
   Entity player = EcsEntity(world, "Player");
-  AddComponent(world, player, Sprite, 
-    {tex, {0, 0, 32, 32}, WHITE});
-  AddComponent(world, player, RigidBody, 
-    RigidBodyKinematic(50, 1.5f));
+  AddComponent(world, player, Transform2, TransformOrigin);
+  AddComponent(world, player, RigidBody, RigidBodyKinematic(50, 1.5f));
+  AddComponent(world, player, Collider, ColliderSolid(3, 16));
   AddScript(world, player, MoveScript, EcsOnFixedUpdate);
+
+  // Optional (debug) system
+  System(world, DebugColliderSystem, EcsOnRender, Collider);
 
   // Main game loop
   EcsLoop(world);
-  
+
   // Cleanup
   EcsFree(world);
-  UnloadTexture(tex);
   CloseWindow();
   return 0;
 }
 ```
+
 
 
 
