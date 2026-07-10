@@ -29,22 +29,18 @@ AddComponent(ecs, entity, RigidBody, RigidBodyKinematic(100, 2.5f));
 
 - **Force**: Changes object acceleration over time. Use for continuous forces like gravity, thrusters, springs.
 - **Impulse**: Changes object velocity immediately. Use for sudden impacts, explosions, jumps.
-- **Damping**: Reduces velocity over time to simulate air resistance or friction.
 
 ### Applying Forces
 
 ```C
 // Apply continuous force (accumulated)
-Vector2 force = {0, 9.8f}; // Gravity
+Vector3 force = {0, -9.8f, 0}; // Gravity
 RigidBody *rb = GetComponent(ecs, entity, RigidBody);
 ApplyForce(rb, force);
 
 // Apply instantaneous impulse
-Vector2 impulse = {0, -15.0f}; // Jump force
+Vector3 impulse = {0, 15.0f, 0}; // Jump force
 ApplyImpulse(rb, impulse);
-
-// Apply velocity damping (automatic in physics system)
-ApplyDamping(rb); // Uses rigid body's damping attribute
 ```
 
 ## Physics Properties
@@ -53,13 +49,13 @@ RigidBody components include these properties:
 
 ```C
 typedef struct {
-    float mass;    // Object mass (g), 0 or INFINITY for static objects
-    float invmass; // Inverse mass (1/mass), 0 for static objects
-    float damping; // Velocity damping factor (0 = no damping)
-    BodyType type; // Physics behavior type
-    bool gravity;  // Whether gravity affects this body
-    Vector2 speed; // Current velocity (units/second)
-    Vector2 acc;   // Current acceleration (units/second²)
+  float mass;    // Object mass (g), 0 or INFINITY for static objects
+  float invmass; // Inverse mass (1/mass), 0 for static objects
+  float damping; // Velocity damping factor (0 = no damping)
+  BodyType type; // Physics behavior type
+  bool gravity;  // Whether gravity affects this body
+  Vector3 speed; // Current velocity (units/second)
+  Vector3 acc;   // Current acceleration (units/second²)
 } RigidBody;
 ```
 

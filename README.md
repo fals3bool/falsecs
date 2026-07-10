@@ -1,7 +1,7 @@
 # Gearecs
 
 A lightweight `Entity` `Component` `System` library for C game development, built on top of raylib.
-Gearecs provides a modern, data-oriented architecture for creating efficient and scalable 2D games.
+Gearecs provides a modern, data-oriented architecture for creating efficient and scalable games.
 
 Gearecs implements the ECS pattern, which separates data from logic:
 
@@ -14,7 +14,7 @@ Enables highly performant, cache-friendly code with excellent modularity and reu
 ## Features
 
 - **ECS Architecture** - Flexible, data-driven design pattern
-- **Built-in Components** - Transform2, RigidBody, Collider, Sprite, and more
+- **Built-in Components** - Transform, RigidBody, Collider, Sprite, and more
 - **Physics Simulation** - Complete collision detection, forces, gravity, and rigid body dynamics
 - **Hierarchy Relationships** - Parent-child relationships for complex object structures
 - **Scripting** - Entity-specific logic across multiple execution phases
@@ -58,43 +58,41 @@ cmake --build build
 ## Basic Example
 
 ```c
+
 #include <gearecs.h>
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 450
-#define SPEED 900
-
 void MoveScript(ECS *ecs, Entity self) {
-  RigidBody *rb = GetComponent(ecs, self, RigidBody);
-  Transform2 *t = GetComponent(ecs, self, Transform2);
+  // Get transform component
+  Transform *t = GetComponent(ecs, self, Transform);
 
-  // Move on mouse button pressed
-  if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-    Vector2 direction = {cosf(t->rotation), sinf(t->rotation)};
-    ApplyImpulse(rb, Vector2Scale(direction, SPEED));
-  }
+  // Keyboard
+  Vector3 d = {0};
+  if (IsKeyDown(KEY_UP))
+    d.y += 1;
+  if (IsKeyDown(KEY_DOWN))
+    d.y -= 1;
+  if (IsKeyDown(KEY_LEFT))
+    d.x -= 1;
+  if (IsKeyDown(KEY_RIGHT))
+    d.x += 1;
 
-  // Look at mouse position
-  Camera2D *cam = GetComponent(ecs, 0, Camera2D);
-  Vector2 mouseWorld = GetScreenToWorld2D(GetMousePosition(), *cam);
-  Vector2 mouseDirection = {mouseWorld.x - t->position.x,
-                            mouseWorld.y - t->position.y};
-  t->rotation = atan2f(mouseDirection.y, mouseDirection.x);
+  // Move
+  t->translation =
+      Vector3Add(t->translation, Vector3Scale(d, 100 * GetFrameTime()));
 }
 
 int main(void) {
   // Raylib window and camera
-  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "GearECS Example");
+  InitWindow(800, 450, "GearECS Example");
 
   // Registry
   ECS *world = EcsWorld();
 
   // Player entity
   Entity player = EcsEntity(world, "Player");
-  AddComponent(world, player, Transform2, TransformOrigin);
-  AddComponent(world, player, RigidBody, RigidBodyKinematic(50, 1.5f));
-  AddComponent(world, player, Collider, ColliderSolid(3, 16));
-  AddScript(world, player, MoveScript, EcsOnFixedUpdate);
+  AddComponent(world, player, Transform, TransformOrigin);
+  AddComponent(world, player, Collider, ColliderCube(10, false));
+  AddScript(world, player, MoveScript, EcsOnUpdate);
 
   // Optional (debug) system
   System(world, DebugColliderSystem, EcsOnRender, Collider);

@@ -87,7 +87,7 @@ gearecs provides several built-in systems that handle common game functionality:
 - `SpriteSystem`: Renders sprite components
 
 ### Debug Systems
-- `DebugColliderSystem`: Draws collider bounds and collision events (for debugging)
+- `DebugColliderSystem`: Draws collider bounds and collision events
 
 ## Registering Built-in Systems
 
@@ -101,19 +101,19 @@ System(ecs, BehaviourRenderSystem, EcsOnRender, Behaviour);
 System(ecs, BehaviourGuiSystem, EcsOnGui, Behaviour);
 
 // Transform systems
-System(ecs, HierarchyTransformSystem, EcsOnUpdate, Transform2, Parent);
-System(ecs, TransformColliderSystem, EcsOnUpdate, Transform2, Collider);
+System(ecs, HierarchyTransformSystem, EcsOnUpdate, Transform, Parent);
+System(ecs, TransformColliderSystem, EcsOnUpdate, Transform, Collider);
 
 // Physics systems
-System(ecs, CollisionSystem, EcsOnUpdate, Transform2, Collider);
+System(ecs, CollisionSystem, EcsOnUpdate, Transform, Collider);
 System(ecs, GravitySystem, EcsOnFixedUpdate, RigidBody);
-System(ecs, PhysicsSystem, EcsOnFixedUpdate, RigidBody, Transform2);
+System(ecs, PhysicsSystem, EcsOnFixedUpdate, RigidBody, Transform);
 
 // Rendering systems
-System(ecs, SpriteSystem, EcsOnRender, Sprite, Transform2);
+System(ecs, SpriteSystem, EcsOnRender, Sprite, Transform);
 
 // Debug systems
-System(ecs, DebugColliderSystem, EcsOnRender, Collider, Transform2);
+System(ecs, DebugColliderSystem, EcsOnRender, Collider, Transform);
 ```
 
 

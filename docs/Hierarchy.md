@@ -31,16 +31,17 @@ RemoveChild(world, entitA, entityB);
 
 ## Transform Propagation
 
-Hierarchies work seamlessly with `Transform2` components for automatic transform propagation:
+Hierarchies work seamlessly with `Transform` components for automatic transform propagation:
 
 ```C
 // Create parent
 Entity parent = EcsEntity(ecs, "Parent");
-AddComponent(ecs, parent, Transform2, TransformPos(100, 100));
+AddComponent(ecs, parent, Transform, TransformPosition(100, 100, 100));
 
 // Create child
 Entity child = EcsEntity(ecs, "Child");
-AddComponent(ecs, child, Transform2, TransformLocalPos(50, 25));
+AddComponent(ecs, child, Transform, TransformOrigin);
+AddComponent(ecs, child, LocalTransform, TransformPosition(50, 25, 0));
 
 // Establish relationship
 AddChild(ecs, parent, child);
@@ -56,9 +57,10 @@ See [Systems](Systems.md) for more information about hierarchy systems.
 - **Local transforms**: Position/scale/rotation relative to parent
 
 ```C
-Transform2 *t = GetComponent(ecs, child, Transform2);
-printf("Child world position: (%.1f, %.1f)\n", t->position.x, t->position.y);
-printf("Child local position: (%.1f, %.1f)\n", t->localPosition.x, t->localPosition.y);
+Transform *t = GetComponent(ecs, child, Transform);
+LocalTransform *lt = GetComponent(ecs, child, Transform);
+printf("Child world position: (%.1f, %.1f, %.1f)\n", t->translation.x, t->translation.y, t->translation.z);
+printf("Child local position: (%.1f, %.1f, %.1f)\n", lt->translation.x, lt->translation.y, lt->translation.z);
 ```
 
 ## Hierarchical State Management
@@ -135,9 +137,11 @@ Entity player = EcsEntity(ecs, "Player");
 Entity sword = EcsEntity(ecs, "Sword");
 Entity shield = EcsEntity(ecs, "Shield");
 
-AddComponent(ecs, player, Transform2, TransformOrigin);
-AddComponent(ecs, sword, Transform2, TransformLocalPos(30, 0));
-AddComponent(ecs, shield, Transform2, TransformLocalPos(-20, 0));
+AddComponent(ecs, player, Transform, TransformOrigin);
+AddComponent(ecs, sword, Transform, TransformOrigin);
+AddComponent(ecs, shield, Transform, TransformOrigin);
+AddComponent(ecs, sword, LocalTransform, TransformPosition(30, -10, -10));
+AddComponent(ecs, shield, LocalTransform, TransformPosition(-20, -10, -10));
 
 AddChild(ecs, player, sword);
 AddChild(ecs, player, shield);
