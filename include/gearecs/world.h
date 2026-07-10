@@ -28,9 +28,9 @@
  * and sets up the necessary infrastructure for a typical game application.
  *
  * The world includes support for:
- * - Built-in components (Transform2, RigidBody, Collider, Behaviour, etc.)
+ * - Built-in components (Transform, RigidBody, Collider, Behaviour, etc.)
  * - Built-in systems (physics, rendering, collision, etc.)
- * - Camera integration for 2D rendering
+ * - Camera integration for rendering
  *
  * @return Pointer to created ECS world, or NULL on failure.
  *
@@ -67,6 +67,6 @@ void EcsLoop(ECS *world);
  * @param ecs The ECS world registry.
  * @return Camera2D component pointer or NULL if not found.
  */
-Camera2D *WorldMainCamera(ECS *ecs);
+Camera *WorldMainCamera(ECS *ecs);
 
 #endif
