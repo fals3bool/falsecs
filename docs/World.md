@@ -2,9 +2,9 @@
 
 The World is a high-level wrapper that provides a complete game development environment. It builds upon the Registry by:
 
-- Automatically registering all built-in components (Transform2, RigidBody, Collider, Sprite, etc.)
+- Automatically registering all built-in components (Transform, RigidBody, Collider, Sprite, etc.)
 - Registering all built-in systems (physics, collision, rendering, etc.)
-- Creating a camera entity with proper components for 2D rendering
+- Creating a camera entity with proper components for rendering
 - Providing a complete, optimized game loop with `EcsLoop()`
 
 ## Registry vs World
@@ -47,8 +47,8 @@ int main(void) {
 ### World Camera
 
 ```C
-Transform2 *transform = GetComponent(world, player, Transform2);
-Camera2D *camera = WorldMainCamera(world);
+Transform *transform = GetComponent(world, player, Transform);
+Camera *camera = WorldMainCamera(world);
 camera.target = transform.position;
 ```
 

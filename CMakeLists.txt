@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.25) #minumum for raylib
 project(gearecs C)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -63,7 +62,7 @@ set(USE_EXTERNAL_GLFW      OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
   raylib
   GIT_REPOSITORY "https://github.com/raysan5/raylib.git"
-  GIT_TAG "master"
+  GIT_TAG "6.0"
   GIT_SHALLOW TRUE
   GIT_PROGRESS TRUE
 )
@@ -90,6 +89,10 @@ if(GEARECS_BUILD_EXAMPLES)
     get_filename_component(name ${example_src} NAME_WE)
     add_executable(${name} ${example_src})
     target_link_libraries(${name} PRIVATE ${PROJECT_NAME})
+    set_target_properties(${name}
+      PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples"
+    )
   endforeach()
 endif()
 

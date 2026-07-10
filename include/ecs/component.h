@@ -6,19 +6,14 @@
  * @brief Built-in component definitions for gearecs ECS library
  *
  * This header provides a comprehensive set of ready-to-use components
- * for common game development needs. These components integrate seamlessly
- * with the ECS registry and include:
+ * for common game development needs. Including:
  *
- * - Entity metadata and tagging system
- * - 2D transforms with hierarchical support
+ * - Entity metadata
+ * - Entity hierarchy management
+ * - Transforms with hierarchical support
  * - Physics components (RigidBody, Collider)
  * - Rendering components (Sprite)
  * - Scripting and behavior system
- * - Entity hierarchy management
- *
- * All components are designed to be used with the ECS registry macros
- * (Component, AddComponent, GetComponent, etc.) and include helpful
- * initialization macros and utility functions.
  */
 
 #include <ecs/registry.h>
@@ -26,84 +21,44 @@
 #include <raylib.h>
 #include <raymath.h>
 
-/**
- * Creates an empty component.
- *
- * Example: AddComponent(world, player, Behaviour, Empty)
- */
-#define Empty {0}
-
 // ########### //
 //  TRANSFORM  //
 // ########### //
 
-/**
- * 2D transform component with hierarchical support.
- *
- * Supports both world-space and local-space transformations for
- * entity hierarchies. World space represents the final position
- * after applying parent transforms, while local space represents
- * position relative to the parent.
- *
- * The hierarchy transform system automatically updates world space values
- * when parent transforms change.
- *
- * @see HierarchyTransformSystem()
- */
-typedef struct {
-  Vector2 position;      ///< World-space position
-  Vector2 scale;         ///< World-space scale
-  float rotation;        ///< World-space rotation (radians)
-  Vector2 localPosition; ///< Position relative to parent
-  Vector2 localScale;    ///< Scale relative to parent
-  float localRotation;   ///< Rotation relative to parent (radians)
-} Transform2;
+typedef Transform LocalTransform;
 
 /**
- * Creates a zero-initialized transform.
+ * @brief Creates a zero-initialized transform.
  *
- * Position at origin, unit scale, no rotation for both world and local space.
+ * Position at origin, unit scale and rotation.
  *
- * @return Transform2 initializer
+ * @return Transform initializer
  *
- * Example: AddComponent(world, e, Transform2, TransformZero);
+ * Example: AddComponent(world, e, Transform, TransformOrigin);
  */
-#define TransformOrigin {{0, 0}, {1, 1}, 0, {0, 0}, {1, 1}, 0}
+#define TransformOrigin {{0, 0, 0}, {0, 0, 0, 1}, {1, 1, 1}}
 
 /**
- * Creates a transform with specific world position.
+ * @brief Creates a transform with specific world position.
  *
- * Unit scale and no rotation. Useful for root entities or when
- * absolute positioning is needed.
+ * Unit scale and rotation.
  *
  * @param x X coordinate in world space
  * @param y Y coordinate in world space
- * @return Transform2 initializer
+ * @param z Z coordinate in world space
+ * @return Transform initializer
  *
- * Example: AddComponent(world, e, Transform2, TransformPos(100.0f, 200.0f));
+ * Example: AddComponent(world, e, Transform, TransformPos(100.0f, 200.0f,
+ * 150.0f));
  */
-#define TransformPos(x, y) {{x, y}, {1, 1}, 0, {0, 0}, {1, 1}, 0}
-
-/**
- * Creates a transform with specific local position.
- *
- * World position is zero, local position is set. Useful for child
- * entities that should be positioned relative to their parent.
- *
- * @param x X coordinate in local space
- * @param y Y coordinate in local space
- * @return Transform2 initializer
- *
- * Example: AddComponent(world, e, Transform2, TransformLocalPos(50.0f, 25.0f));
- */
-#define TransformLocalPos(x, y) {{0, 0}, {1, 1}, 0, {x, y}, {1, 1}, 0}
+#define TransformPosition(x, y, z) {{x, y, z}, {0, 0, 0, 1}, {1, 1, 1}}
 
 // ########## //
 //  COLLIDER  //
 // ########## //
 
 /**
- * 2D collision detection component supporting convex polygons.
+ * 3D Collider
  *
  * Supports both solid colliders (block movement) and trigger colliders
  * (detect overlap without blocking). Uses polygon-based collision with
@@ -111,74 +66,14 @@ typedef struct {
  * managed by the registry.
  */
 typedef struct {
-  Vector2 *vx;      ///< Array of polygon vertices (local space)
-  Vector2 *md;      ///< Axis-aligned bounding box data (internal)
-  uint8_t vertices; ///< Number of vertices in polygon
-  bool overlap;     ///< Collision overlap flag (internal)
+  Vector3 *vx;      ///< Array of vertices
+  Vector3 *md;      ///< Axis-aligned vertices located at origin (model)
+  uint8_t *edge;    ///< Shape edges with vertex index, used for rendering.
+  uint8_t vertices; ///< Number of vertices
+  uint8_t edges;    ///< Number of edges
   bool solid;       ///< true for solid, false for trigger
+  bool overlap;     ///< Collision overlap flag
 } Collider;
-
-/**
- * Creates a trigger collider.
- *
- * Trigger colliders detect overlap but don't block movement. Useful for
- * area effects, pickups, and detection zones.
- *
- * @param v Number of vertices
- * @param r Bounding radius for broad-phase culling
- * @return Collider instance
- */
-#define ColliderTrigger(v, r) ColliderCreate(v, r, false)
-
-/**
- * Creates a solid collider.
- *
- * Solid colliders block movement and generate collision responses.
- * Useful for walls, platforms, and physical obstacles.
- *
- * @param v Number of vertices
- * @param r Bounding radius for broad-phase culling
- * @return Collider instance
- */
-#define ColliderSolid(v, r) ColliderCreate(v, r, true)
-
-/**
- * Creates a collider with specified parameters.
- *
- * Low-level function used by the Collider* macros. Creates polygon
- * collision shape with specified number of vertices and properties.
- *
- * @param vertices Number of vertices for polygon
- * @param radius Bounding radius for optimization
- * @param solid true for solid, false for trigger
- * @return Configured Collider instance
- */
-Collider ColliderCreate(int vertices, float radius, bool solid);
-
-/**
- * Creates a collider from a list of vertices.
- *
- * @note be aware to not create a concave polygon. Gearecs only support convex
- * polygons.
- *
- * @param vertices Number of vertices for polygon
- * @param solid true for solid, false for trigger
- * @param vecs List of vertices
- * @return Configured Collider instance
- */
-Collider ColliderVec(uint8_t vertices, Vector2 *vecs, bool solid);
-
-/**
- * Creates a collider from a rectangle.
- *
- * @note The rectangle is a bounding box which center is located at
- * entity.transform.position
- *
- * @param rect Rectangle bounding box
- * @param solid true for solid, false for trigger
- * @return Configured Collider instance
- */
-Collider ColliderRect(Rectangle rect, bool solid);
 
 /**
  * Destructor for Collider component.
@@ -191,28 +86,29 @@ Collider ColliderRect(Rectangle rect, bool solid);
 void ColliderDestructor(void *self);
 
 /**
- * Destructor for Children component.
+ * Creates a cube collider
  *
- * Automatically frees child list array memory when Children component
- * is removed or entity is destroyed. Registered with ComponentDynamic().
+ * @param size distance between adjacent vertices
+ * @param solid true for solid, false for trigger
+ * @return Collider instace
  *
- * @param self Pointer to Children instance
+ * @see ColliderDestructor
  */
-void ChildrenDestructor(void *self);
+Collider ColliderCube(float size, bool solid);
 
 /**
- * Collision data structure.
+ * Collision data.
  *
  * Contains information about collision normal and penetration depth
  * for collision resolution and response.
  */
 typedef struct {
-  Vector2 normal; ///< Collision normal vector (direction of separation)
+  Vector3 normal; ///< Collision normal vector (direction of separation)
   float distance; ///< Penetration depth (positive = overlapping)
 } Collision;
 
 /**
- * Collision event data structure.
+ * Collision event between two entities.
  *
  * Passed to collision handlers with information about
  * the colliding entities and collision details.
@@ -220,14 +116,13 @@ typedef struct {
 typedef struct {
   Entity self;         ///< Entity receiving the collision event
   Entity other;        ///< Entity being collided with
-  Collision collision; ///< Collision details
+  Collision collision; ///< Collision data
 } CollisionEvent;
 
 /**
  * Collision handler function type.
  *
- * Function called when collision occurs. Implement custom collision
- * response logic (damage, physics, state changes, etc.).
+ * Function called when collision occurs.
  *
  * @param ecs Registry containing the entities
  * @param event Collision event data
@@ -236,9 +131,6 @@ typedef void (*CollisionHandler)(ECS *, CollisionEvent *);
 
 /**
  * Component for receiving collision events.
- *
- * Add this component to entities that need to handle custom logic on
- * collisions.
  */
 typedef struct {
   // CollisionHandler OnCollisionEnter;  ///< TODO: Collision start handler
@@ -257,7 +149,7 @@ typedef struct {
  * Determines how an entity participates in physics simulation:
  * - Static: Immovable, infinite mass objects (walls, floors)
  * - Dynamic: Full physics simulation, affected by forces (players, objects)
- * - Kinematic: Moved manually, affects dynamics but isn't affected
+ * - Kinematic: Moved manually
  */
 typedef enum {
   BodyStatic = 0, ///< Immovable objects with infinite mass
@@ -266,7 +158,7 @@ typedef enum {
 } BodyType;
 
 /**
- * 2D rigid body physics component.
+ * 3D rigid body physics component.
  *
  * Provides realistic physics simulation including forces, impulses,
  * mass, damping, and gravity support. Integrates with collider
@@ -278,18 +170,18 @@ typedef struct {
   float damping; ///< Velocity damping factor (0 = no damping)
   BodyType type; ///< Physics behavior type
   bool gravity;  ///< Whether gravity affects this body
-  Vector2 speed; ///< Current velocity (units/second)
-  Vector2 acc;   ///< Current acceleration (units/second²)
+  Vector3 speed; ///< Current velocity (units/second)
+  Vector3 acc;   ///< Current acceleration (units/second²)
 } RigidBody;
 
 /**
  * Creates a rigid body with specified parameters.
  *
- * Low-level macro used by the specific body type macros. Automatically
- * handles mass/inverse mass calculation and gravity setting based on type.
+ * Low-level macro. Automatically handles mass/inverse mass calculation and
+ * gravity setting based on type.
  *
  * @param mass Mass value (use 0 or INFINITY for static objects)
- * @param damping Damping factor (0-1)
+ * @param damping Damping factor
  * @param type BodyType enum value
  * @return RigidBody initializer
  */
@@ -299,14 +191,14 @@ typedef struct {
    damping,                                                                    \
    type,                                                                       \
    (type == BodyDynamic) ? true : false,                                       \
-   {0, 0},                                                                     \
-   {0, 0}}
+   {0, 0, 0},                                                                  \
+   {0, 0, 0}}
 
 /**
  * Creates a static rigid body.
  *
  * Static bodies have infinite mass and don't move, but can collide
- * with dynamic bodies. Perfect for walls, floors, platforms.
+ * with dynamic bodies.
  *
  * @return RigidBody initializer
  *
@@ -325,7 +217,7 @@ typedef struct {
  * @param damping Velocity damping factor (0-1..)
  * @return RigidBody initializer
  *
- * Example: AddComponent(world, e, RigidBody, RigidBodyDynamic(80.0f, 0.98f));
+ * Example: AddComponent(world, e, RigidBody, RigidBodyDynamic(300.f, 1.52f));
  */
 #define RigidBodyDynamic(mass, damping)                                        \
   RigidBodyCreate(mass, damping, BodyDynamic)
@@ -357,7 +249,7 @@ typedef struct {
  *
  * @note Force is accumulated, call before physics update
  */
-void ApplyForce(RigidBody *rb, Vector2 force);
+void ApplyForce(RigidBody *rb, Vector3 force);
 
 /**
  * Applies an instantaneous impulse to a rigid body.
@@ -370,7 +262,7 @@ void ApplyForce(RigidBody *rb, Vector2 force);
  *
  * @note Impulse is applied immediately
  */
-void ApplyImpulse(RigidBody *rb, Vector2 impulse);
+void ApplyImpulse(RigidBody *rb, Vector3 impulse);
 
 /**
  * Applies velocity damping to a rigid body.
@@ -391,9 +283,6 @@ void ApplyDamping(RigidBody *rb);
 /**
  * 2D sprite rendering component.
  *
- * Handles texture rendering with source rectangle selection
- * and color tinting. Supports sprite sheets through src rectangle.
- * Integrates with raylib's rendering system.
  */
 typedef struct {
   Texture tex;   ///< Raylib texture to render
@@ -409,8 +298,7 @@ typedef struct {
  * Component for entity scripting and behavior management.
  *
  * Allows entities to have custom scripts that run at different
- * phases of the game loop. Supports enable/disable events and
- * per-layer script execution.
+ * phases of the game loop. Supports enable/disable events.
  */
 typedef struct {
   Script OnEnable;                ///< Script called when entity is enabled
@@ -440,7 +328,7 @@ void AddScript(ECS *ecs, Entity e, Script s, EcsPhase phase);
 /**
  * Parent component for entity hierarchy.
  *
- * Links an entity to its parent in the hierarchy. Used with Transform2
+ * Links an entity to its parent in the hierarchy. Used with Transform
  * to implement hierarchical transformations where child entities
  * inherit parent transformations.
  */
@@ -466,6 +354,16 @@ typedef struct {
   Entity count;
   Entity allocated;
 } Children;
+
+/**
+ * Destructor for Children component.
+ *
+ * Automatically frees child list array memory when Children component
+ * is removed or entity is destroyed. Registered with ComponentDynamic().
+ *
+ * @param self Pointer to Children instance
+ */
+void ChildrenDestructor(void *self);
 
 /**
  * Sets a parent for an entity in the hierarchy.

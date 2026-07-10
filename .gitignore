@@ -8,6 +8,8 @@ toolchain-mingw64.cmake
 docs/custom/
 docs/view/
 
+tests/
+
 ## GENERATED ##
 
 # Prerequisites

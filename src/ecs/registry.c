@@ -35,14 +35,7 @@ typedef struct {
   Signature mask;
 } Layer;
 
-typedef struct {
-  Entity *entities;
-  Entity count;
-  Entity alloc;
-} LayerEntities;
-
 struct Registry {
-
   EntityData *entities; // EntityData - GameObjects
   Entity entity_count;
   Entity entity_alloc;
@@ -58,8 +51,7 @@ struct Registry {
 
   PhaseSystem *systems; // Systems with phases
 
-  Layer *layers;         // Layer stack (order + collision)
-  LayerEntities *render; // Render entities stack
+  Layer *layers; // Layer stack (order + collision)
   EcsID layer_count;
   EcsID layer_alloc;
 };
@@ -84,8 +76,7 @@ void EcsLogStatus(ECS *ecs) {
   printf("    ],\n  },\n  Layers: len:%u (alloc:%u) [\n", ecs->layer_count,
          ecs->layer_alloc);
   for (EcsID i = 0; i < ecs->layer_count; i++)
-    printf("      {name: %s, entities: %d (alloc: %d), mask: %lb},\n",
-           ecs->layers[i].name, ecs->render[i].count, ecs->render[i].alloc,
+    printf("      {name: %s, mask: %lb},\n", ecs->layers[i].name,
            ecs->layers[i].mask);
   printf("    ],\n  },\n}\n");
 }
@@ -102,7 +93,6 @@ static void EcsInitEntities(ECS *ecs) {
   ecs->free_count = 0;
   ecs->free_alloc = 0;
   ecs->layers = NULL;
-  ecs->render = NULL;
   ecs->layer_count = 0;
   ecs->layer_alloc = 0;
 }
@@ -117,15 +107,7 @@ static void EcsFreeEntities(ECS *ecs) {
   ecs->free_count = 0;
   ecs->free_alloc = 0;
   if (ecs->layers) {
-    for (int i = 0; i < ecs->layer_count; i++) {
-      if (ecs->render[i].entities)
-        free(ecs->render[i].entities);
-      ecs->render[i].count = 0;
-      ecs->render[i].alloc = 0;
-    }
     free(ecs->layers);
-    free(ecs->render);
-    ecs->render = NULL;
     ecs->layers = NULL;
     ecs->layer_count = 0;
     ecs->layer_alloc = 0;
@@ -134,6 +116,7 @@ static void EcsFreeEntities(ECS *ecs) {
 
 static void EcsInitComponents(ECS *ecs) {
   ecs->components = NULL;
+  ecs->search = NULL;
   ecs->comp_alloc = 0;
   ecs->comp_count = 0;
 }
@@ -183,15 +166,12 @@ void EcsFree(ECS *ecs) {
   EcsFreeComponents(ecs);
   EcsFreeEntities(ecs);
   free(ecs);
-  printf("GEARECS: Registry freed successfully!\n");
+  // printf("GEARECS: Registry freed successfully!\n");
 }
 
 // ######## //
 //  ENTITY  //
 // ######## //
-
-void AddEntityToLayer(ECS *ecs, Entity e, uint8_t ly);
-void RemoveEntityFromLayer(ECS *ecs, Entity e);
 
 Entity EcsEntity(ECS *ecs, char *tag) {
   Entity e;
@@ -200,7 +180,7 @@ Entity EcsEntity(ECS *ecs, char *tag) {
   } else {
     if (ecs->entity_count >= MaxEntities)
       return InvalidID;
-    e = ecs->entity_count;
+    e = ecs->entity_count++;
   }
   assert(e < MaxEntities && "Exceeded maximum number of entities");
   EntityData ed = {0, true, true, tag, 0};
@@ -209,8 +189,6 @@ Entity EcsEntity(ECS *ecs, char *tag) {
   // if (alloc == 0) // this should never happend
   //   return InvalidID;
   ecs->entity_alloc = alloc;
-  ecs->entity_count++;
-  AddEntityToLayer(ecs, e, 0);
   return e;
 }
 
@@ -225,12 +203,11 @@ void EcsEntityFree(ECS *ecs, Entity e) {
   // Remove all components with proper cleanup
   for (Component c = 0; c < ecs->comp_count; c++)
     EcsRemoveComponent(ecs, e, c);
-  RemoveEntityFromLayer(ecs, e);
   ecs->entities[e] = (EntityData){0};
 
   // if (ecs->free_count < MaxEntities) {
   Entity alloc = MemPushBack((void **)&ecs->free_entities, ecs->free_alloc,
-                                ecs->free_count, &e, sizeof(Entity));
+                             ecs->free_count, &e, sizeof(Entity));
   ecs->free_alloc = alloc;
   ecs->free_count++;
   // }
@@ -257,7 +234,7 @@ EntityData *EcsEntityData(ECS *ecs, Entity e) {
 }
 
 Entity EntityFindByTag(ECS *ecs, char *tag) {
-  for (Entity e = 0; e < ecs->comp_count; e++) {
+  for (Entity e = 0; e < ecs->entity_count; e++) {
     if (strcmp(ecs->entities[e].tag, tag) == 0)
       return e;
   }
@@ -316,9 +293,9 @@ Component EcsComponent(ECS *ecs, char *name, size_t size,
   ComponentID compid = {id, name};
 
   MemPushBack((void **)&ecs->components, alloc, count, &component,
-                 sizeof(ComponentData));
+              sizeof(ComponentData));
   alloc = MemPushBack((void **)&ecs->search, alloc, count, &compid,
-                         sizeof(ComponentID));
+                      sizeof(ComponentID));
 
   ecs->comp_alloc = alloc;
   ecs->comp_count++;
@@ -335,7 +312,7 @@ void EcsAddComponent(ECS *ecs, Entity e, Component id, void *data) {
 
   size_t size = ecs->components[id].size;
   Component alloc = MemPushBack((void **)&ecs->components[id].list,
-                                   ecs->components[id].alloc, e, data, size);
+                                ecs->components[id].alloc, e, data, size);
   ecs->components[id].alloc = alloc;
   ecs->entities[e].signature |= (1ULL << id);
 }
@@ -443,9 +420,9 @@ void EcsAddSystem(ECS *ecs, Script s, EcsPhase phase, Signature mask) {
     return;
 
   System sys = {s, mask};
-  EcsID alloc = MemPushBack((void **)&ecs->systems[phase].list,
-                               ecs->systems[phase].alloc,
-                               ecs->systems[phase].size, &sys, sizeof(System));
+  EcsID alloc =
+      MemPushBack((void **)&ecs->systems[phase].list, ecs->systems[phase].alloc,
+                  ecs->systems[phase].size, &sys, sizeof(System));
   if (alloc == InvalidID)
     return;
 
@@ -459,27 +436,13 @@ void EcsRunSystems(ECS *ecs, EcsPhase phase) {
   if (!list)
     return;
 
-  // for update systems
-  if (ecs->layer_count == 0 || phase < EcsOnRender) {
-    for (size_t s = 0; s < len; s++) {
-      for (Entity e = 0; e < ecs->entity_count; e++) {
-        if (EcsHasComponents(ecs, e, list[s].mask) && EntityIsActive(ecs, e))
-          list[s].run(ecs, e);
-      }
-    }
-    return;
-  }
-
-  // for rendering systems
   for (size_t s = 0; s < len; s++) {
-    for (uint8_t l = 0; l < ecs->layer_count; l++) {
-      for (Entity i = 0; i < ecs->render[l].count; i++) {
-        Entity e = ecs->render[l].entities[i];
-        if (EcsHasComponents(ecs, e, list[s].mask) && EntityIsVisible(ecs, e))
-          list[s].run(ecs, e);
-      }
+    for (Entity e = 0; e < ecs->entity_count; e++) {
+      if (EcsHasComponents(ecs, e, list[s].mask) && EntityIsActive(ecs, e))
+        list[s].run(ecs, e);
     }
   }
+  return;
 }
 
 // ######## //
@@ -501,10 +464,6 @@ void AddLayer(ECS *ecs, char *name) {
   Layer ly = {name, (Signature)-1}; // all enabled
   MemPushBack((void **)&ecs->layers, alloc, count, &ly, sizeof(Layer));
 
-  LayerEntities le = {NULL, 0, 0};
-  alloc = MemPushBack((void **)&ecs->render, alloc, count, &le,
-                         sizeof(LayerEntities));
-
   ecs->layer_count++;
   ecs->layer_alloc = alloc;
 }
@@ -517,38 +476,8 @@ void EcsFreeLayers(ECS *ecs) {
 }
 
 void EntitySetLayer(ECS *ecs, Entity e, char *layer) {
-  RemoveEntityFromLayer(ecs, e);
   uint8_t ly = LayerIndex(ecs, layer);
   ecs->entities[e].layer = ly;
-  AddEntityToLayer(ecs, e, ly);
-}
-
-void AddEntityToLayer(ECS *ecs, Entity e, uint8_t ly) {
-  if (!ecs->render || ecs->layer_count <= ly)
-    return;
-
-  EcsID count = ecs->render[ly].count;
-  EcsID alloc = ecs->render[ly].alloc;
-
-  alloc = MemPushBack((void **)&ecs->render[ly].entities, alloc, count, &e,
-                         sizeof(Entity));
-
-  ecs->render[ly].count++;
-  ecs->render[ly].alloc = alloc;
-}
-
-void RemoveEntityFromLayer(ECS *ecs, Entity e) {
-  uint8_t ly = ecs->entities[e].layer;
-  if (!ecs->render || ecs->layer_count <= ly || !ecs->render[ly].entities)
-    return;
-  Entity last = ecs->render[ly].count - 1;
-  for (int i = (int)last; i >= 0; i--) {
-    if (ecs->render[ly].entities[i] == e) {
-      ecs->render[ly].entities[i] = ecs->render[ly].entities[last];
-      ecs->render[ly].count--;
-      return;
-    }
-  }
 }
 
 void LayerEnable(ECS *ecs, char *layer1, char *layer2) {
@@ -567,12 +496,14 @@ void LayerDisable(ECS *ecs, char *layer1, char *layer2) {
 
 void LayerDisableAll(ECS *ecs, char *layer) {
   uint8_t ly = LayerIndex(ecs, layer);
+  for (uint8_t l = 0; l < ecs->layer_count; l++)
+    ecs->layers[l].mask &= ~(1ULL << ly);
   ecs->layers[ly].mask = 0;
 }
 
 bool LayerIncludes(ECS *ecs, uint8_t layer1, uint8_t layer2) {
   if (ecs->layer_count == 0)
     return true;
-  Signature mask = (1 << layer2);
+  Signature mask = (1ULL << layer2);
   return (ecs->layers[layer1].mask & mask) == mask;
 }

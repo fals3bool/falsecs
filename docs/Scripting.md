@@ -20,13 +20,13 @@ void PlayerStart(ECS *ecs, Entity self) {
 }
 
 void PlayerUpdate(ECS *ecs, Entity self) {
-    Transform2 *transform = GetComponent(ecs, self, Transform2);
+    Transform *transform = GetComponent(ecs, self, Transform);
     
     // Movement logic
     if (IsKeyDown(KEY_LEFT))
-        transform->position.x -= GetFrameTime() * 200;
+        transform->position.x -= GetFrameTime() * 100;
     if (IsKeyDown(KEY_RIGHT))
-        transform->position.x += GetFrameTime() * 200;
+        transform->position.x += GetFrameTime() * 100;
 }
 ```
 
@@ -37,7 +37,7 @@ Use `AddScript()` to add scripts to entities. The `Behaviour` component is added
 ```C
 // Create entity
 Entity player = EcsEntity(ecs, "Player");
-AddComponent(ecs, player, Transform2, TransformOrigin);
+AddComponent(ecs, player, Transform, TransformOrigin);
 
 // Add scripts for different phases
 AddScript(ecs, player, PlayerStart, EcsOnStart);

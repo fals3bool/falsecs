@@ -141,8 +141,8 @@ ComponentDynamic(world, Inventory, InventoryDestructor);
 
 Gearecs provides several built-in components for common game functionality:
 
-`Transform2`
-- Handles 2D positioning, scaling, and rotation
+`Transform`
+- Handles position (translation), scale, and rotation (Quaternion)
 - Supports parent-child relationships
 - Automatically updated by hierarchy systems
 
@@ -152,15 +152,14 @@ Gearecs provides several built-in components for common game functionality:
 - Supports different body types
 
 `Collider`
-- Convex polygon collision detection
-- Collision filtering through entity layers managed by registry
+- Convex collision detection
+- Collision filtering through entity layers
 
 `CollisionListener`
 - Collision event handlers
 
 `Sprite`
 - 2D rendering with raylib
-- Supports spritesheets
 
 `Behaviour`
 - Entity-specific logic (scripting)

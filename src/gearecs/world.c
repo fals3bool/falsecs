@@ -10,23 +10,25 @@ static Color background; ///< Window background color
 ECS *EcsWorld(void) {
   ECS *ecs = EcsRegistry();
 
-  Component(ecs, Transform2);
+  Component(ecs, Transform);
+  Component(ecs, LocalTransform);
   Component(ecs, Behaviour);
   Component(ecs, Parent);
   ComponentDynamic(ecs, Children, ChildrenDestructor);
-  Component(ecs, Camera2D);
+  Component(ecs, Camera);
   Component(ecs, Sprite);
   ComponentDynamic(ecs, Collider, ColliderDestructor);
   Component(ecs, CollisionListener);
   Component(ecs, RigidBody);
 
-  Camera2D camera = {
-      .offset = {GetScreenWidth() / 2.f, GetScreenHeight() / 2.f},
-      .target = {0, 0},
-      .rotation = 0,
-      .zoom = 1.f};
+  Camera3D camera = {0};
+  camera.position = (Vector3){0.0f, 0.0f, 30.0f};
+  camera.target = (Vector3){0.0f, 0.0f, 0.0f};
+  camera.up = (Vector3){0.0f, 1.0f, 0.0f};
+  camera.fovy = 145.0f;
+  camera.projection = CAMERA_ORTHOGRAPHIC;
   Entity camEntity = EcsEntity(ecs, "MainCamera");
-  AddComponent(ecs, camEntity, Camera2D, camera);
+  AddComponent(ecs, camEntity, Camera, camera);
 
   System(ecs, BehaviourStartSystem, EcsOnStart, Behaviour);
   System(ecs, BehaviourUpdateSystem, EcsOnUpdate, Behaviour);
@@ -35,14 +37,14 @@ ECS *EcsWorld(void) {
   System(ecs, BehaviourRenderSystem, EcsOnRender, Behaviour);
   System(ecs, BehaviourGuiSystem, EcsOnGui, Behaviour);
 
-  System(ecs, HierarchyTransformSystem, EcsOnUpdate, Transform2, Parent);
-  System(ecs, TransformColliderSystem, EcsOnUpdate, Transform2, Collider);
-  System(ecs, CollisionSystem, EcsOnUpdate, Transform2, Collider);
+  System(ecs, HierarchyTransformSystem, EcsOnUpdate, Transform, Parent);
+  System(ecs, TransformColliderSystem, EcsOnUpdate, Transform, Collider);
+  System(ecs, CollisionSystem, EcsOnUpdate, Transform, Collider);
 
   System(ecs, GravitySystem, EcsOnFixedUpdate, RigidBody);
-  System(ecs, PhysicsSystem, EcsOnFixedUpdate, RigidBody, Transform2);
+  System(ecs, PhysicsSystem, EcsOnFixedUpdate, RigidBody, Transform);
 
-  System(ecs, SpriteSystem, EcsOnRender, Transform2, Sprite);
+  System(ecs, SpriteSystem, EcsOnRender, Transform, Sprite);
 
   AddLayer(ecs, "default");
 
@@ -65,10 +67,10 @@ void GameGenericLoop(void *world) {
   BeginDrawing();
   ClearBackground(background);
 
-  Camera2D *cam = WorldMainCamera(ecs);
-  BeginMode2D(*cam);
+  Camera *cam = WorldMainCamera(ecs);
+  BeginMode3D(*cam);
   EcsRunSystems(ecs, EcsOnRender);
-  EndMode2D();
+  EndMode3D();
 
   EcsRunSystems(ecs, EcsOnGui);
   EndDrawing();
@@ -87,4 +89,4 @@ void EcsLoop(ECS *world) {
 #endif
 }
 
-Camera2D *WorldMainCamera(ECS *ecs) { return GetComponent(ecs, 0, Camera2D); }
+Camera *WorldMainCamera(ECS *ecs) { return GetComponent(ecs, 0, Camera); }
