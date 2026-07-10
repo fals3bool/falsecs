@@ -1,178 +1,131 @@
-#include <gearecs/world.h>
-
+#include <gearecs.h>
 #include <stdio.h>
 
-void ScriptMove(ECS *ecs, Entity self) {
-  Transform2 *t = GetComponent(ecs, self, Transform2);
-  RigidBody *rb = GetComponent(ecs, self, RigidBody);
+typedef struct {
+  float speed;
+} RotationSpeed;
 
-  Camera2D *cam = GetComponent(ecs, 0, Camera2D);
-  Vector2 mu = GetScreenToWorld2D(GetMousePosition(), *cam);
-  Vector2 md = {mu.x - t->position.x, mu.y - t->position.y};
-  t->rotation = atan2f(md.y, md.x);
+#define RA {0.8f}
+#define RB {0.1f}
+#define RC {0.4f}
+#define RD {0.2f}
+#define RE {0.3f}
 
-  Vector2 d = {0};
+void GridScript(ECS *ecs, Entity self) {
+  (void)ecs;
+  (void)self;
+  DrawGrid(5, 6.0f);
+}
+
+void RotateScript(ECS *ecs, Entity self) {
+  Transform *t = GetComponent(ecs, self, Transform);
+  RotationSpeed *rs = GetComponent(ecs, self, RotationSpeed);
+
+  float dt = GetFrameTime() * rs->speed;
+
+  Quaternion dq = QuaternionFromAxisAngle((Vector3){0.0f, 1.0f, 0.0f}, dt);
+  t->rotation = QuaternionMultiply(dq, t->rotation);
+}
+
+void MoveScript(ECS *ecs, Entity self) {
+  RotateScript(ecs, self);
+  Transform *t = GetComponent(ecs, self, Transform);
+  Vector3 d = {0};
   if (IsKeyDown(KEY_UP))
-    d.y -= 1;
+    d.z -= 1;
   if (IsKeyDown(KEY_DOWN))
-    d.y += 1;
+    d.z += 1;
   if (IsKeyDown(KEY_LEFT))
     d.x -= 1;
   if (IsKeyDown(KEY_RIGHT))
     d.x += 1;
-
-  d = Vector2Scale(Vector2Normalize(d), 150 * GetFrameTime());
-  t->position.x += d.x;
-  t->position.y += d.y;
-
-  if (IsKeyPressed(KEY_SPACE)) {
-    rb->gravity = false;
-    rb->type++;
-    if (rb->type > BodyKinematic)
-      rb->type = 0;
-  }
+  t->translation =
+      Vector3Add(t->translation, Vector3Scale(d, 10 * GetFrameTime()));
 }
 
-void ScriptImpulse(ECS *ecs, Entity self) {
-  RigidBody *rb = GetComponent(ecs, self, RigidBody);
-
-  Vector2 d = {0};
-  if (IsKeyDown(KEY_W))
-    d.y -= 1;
-  if (IsKeyDown(KEY_S))
-    d.y += 1;
-  if (IsKeyDown(KEY_A))
-    d.x -= 1;
-  if (IsKeyDown(KEY_D))
-    d.x += 1;
-
-  ApplyImpulse(rb, Vector2Scale(Vector2Normalize(d), 400.f));
-}
-
-void ScriptGui(ECS *ecs, Entity self) {
-  DrawText("Transform: [ARROWS]", 10, 10, 16, WHITE);
-  DrawText("Impulse: [WASD]", 10, 30, 16, WHITE);
-  DrawText("Switch RigidBody: [SPACE]", 10, 50, 16, WHITE);
-  char fpstxt[10];
-  snprintf(fpstxt, 10, "FPS: %d", GetFPS());
-  DrawText(fpstxt, 700, 10, 16, WHITE);
-}
-
-void ScriptShowData(ECS *ecs, Entity self) {
-  Transform2 *t = GetComponent(ecs, self, Transform2);
-  RigidBody *rb = GetComponent(ecs, self, RigidBody);
-  Collider *c = GetComponent(ecs, self, Collider);
-
-  int fontsize = 12;
-  char coltxt[20];
-  snprintf(coltxt, 18, "Collider: %s", c->solid ? "SOLID" : "TRIGGER");
-  DrawText(coltxt,
-           t->position.x -
-               MeasureTextEx(GetFontDefault(), coltxt, fontsize, 1).x / 2,
-           t->position.y + 20, fontsize, WHITE);
-
-  char layertxt[20];
-  snprintf(layertxt, 11, "Layer: %d", EcsEntityData(ecs, self)->layer);
-  DrawText(layertxt,
-           t->position.x -
-               MeasureTextEx(GetFontDefault(), layertxt, fontsize, 1).x / 2,
-           t->position.y + 40, fontsize, WHITE);
-
-  if (!rb)
-    return;
-  char rbtxt[20];
-  snprintf(rbtxt, 16, "Body: %s",
-           rb ? rb->type == BodyDynamic  ? "DYNAMIC"
-                : rb->type == BodyStatic ? "STATIC"
-                                          : "KINEMATIC"
-              : "NONE");
-  DrawText(rbtxt,
-           t->position.x -
-               MeasureTextEx(GetFontDefault(), rbtxt, fontsize, 1).x / 2,
-           t->position.y + 60, fontsize, WHITE);
-}
-
-void OnCollisionHandler(ECS *ecs, CollisionEvent *event) {
-  printf("COLLISION: Entity %d hit %d (depth: %.2f)\n", event->self,
-         event->other, event->collision.distance);
-}
-
-void LoadScene(ECS *ecs) {
-
-  AddLayer(ecs, "player");
-  AddLayer(ecs, "disable");
-  LayerDisableAll(ecs, "disable");
-
-  // COLLIDER: [SOLID]
-  // BODY: [NONE]
-  Entity A = EcsEntity(ecs, "A");
-  AddComponent(ecs, A, Transform2, TransformPos(-250, 100));
-  AddComponent(ecs, A, Collider, ColliderSolid(5, 18));
-  AddComponent(ecs, A, CollisionListener, {OnCollisionHandler});
-  AddScript(ecs, A, ScriptShowData, EcsOnRender);
-
-  // COLLIDER: [TRIGGER]
-  // BODY: [NONE]
-  Entity B = EcsEntity(ecs, "B");
-  AddComponent(ecs, B, Transform2, TransformPos(-150, -100));
-  AddComponent(ecs, B, Collider, ColliderTrigger(4, 20));
-  AddComponent(ecs, B, CollisionListener, {OnCollisionHandler});
-  AddScript(ecs, B, ScriptShowData, EcsOnRender);
-
-  // COLLIDER: [SOLID]
-  // BODY: [DYNAMIC]
-  Entity C = EcsEntity(ecs, "C");
-  AddComponent(ecs, C, Transform2, TransformPos(0, 100));
-  AddComponent(ecs, C, Collider, ColliderSolid(5, 22));
-  RigidBody rbC = RigidBodyDynamic(80, 1.2f);
-  rbC.gravity = false;
-  AddComponent(ecs, C, RigidBody, rbC);
-  AddScript(ecs, C, ScriptShowData, EcsOnRender);
-
-  // COLLIDER: [SOLID]
-  // BODY: [STATIC]
-  Entity D = EcsEntity(ecs, "D");
-  AddComponent(ecs, D, Transform2, TransformPos(150, -100));
-  AddComponent(ecs, D, Collider, ColliderSolid(5, 14));
-  AddComponent(ecs, D, RigidBody, RigidBodyStatic);
-  AddScript(ecs, D, ScriptShowData, EcsOnRender);
-
-  // COLLIDER: [SOLID]
-  // BODY: [STATIC]
-  // ANOTHER LAYER
-  Entity E = EcsEntity(ecs, "E");
-  EntitySetLayer(ecs, E, "disable");
-  AddComponent(ecs, E, Transform2, TransformPos(250, 100));
-  Collider solid = ColliderSolid(5, 20);
-  AddComponent(ecs, E, Collider, solid);
-  AddComponent(ecs, E, RigidBody, RigidBodyStatic);
-  AddScript(ecs, E, ScriptShowData, EcsOnRender);
-
-  // PLAYER
-  Entity P = EcsEntity(ecs, "Player");
-  EntitySetLayer(ecs, P, "player");
-  AddComponent(ecs, P, Transform2, TransformOrigin);
-  Collider colP = ColliderSolid(3, 22);
-  AddComponent(ecs, P, Collider, colP);
-  AddComponent(ecs, P, CollisionListener, {OnCollisionHandler});
-  AddComponent(ecs, P, RigidBody, RigidBodyKinematic(50, 1.5f));
-  AddScript(ecs, P, ScriptMove, EcsOnUpdate);
-  AddScript(ecs, P, ScriptImpulse, EcsOnFixedUpdate);
-  AddScript(ecs, P, ScriptShowData, EcsOnRender);
-  AddScript(ecs, P, ScriptGui, EcsOnGui);
-
-  System(ecs, DebugColliderSystem, EcsOnRender, Transform2, Collider);
+void AHandler(ECS *ecs, CollisionEvent *event) {
+  (void)ecs;
+  printf(
+      "[EVENT] Collision %d -> %d: {dist: %.2f, normal: [%.2f, %.2f, %.2f]}\n",
+      event->self, event->other, event->collision.distance,
+      event->collision.normal.x, event->collision.normal.y,
+      event->collision.normal.z);
 }
 
 int main(void) {
-  InitWindow(800, 450, "Colliders & RigidBodies");
+
+  InitWindow(800, 450, "Colliders 3D");
 
   ECS *ecs = EcsWorld();
-  LoadScene(ecs);
-  EcsLogStatus(ecs);
-  EcsLoop(ecs);
+  Component(ecs, RotationSpeed);
 
+  Camera *cam = WorldMainCamera(ecs);
+  cam->position = (Vector3){25.0f, 15.0f, 25.0f};
+  cam->target = (Vector3){0.0f, 0.0f, 0.0f};
+  cam->up = (Vector3){0.0f, 1.0f, 0.0f};
+  cam->fovy = 60.0f;
+  cam->projection = CAMERA_ORTHOGRAPHIC;
+
+  AddLayer(ecs, "player");
+  AddLayer(ecs, "box1");
+  AddLayer(ecs, "box2");
+  AddLayer(ecs, "box3");
+  AddLayer(ecs, "box4");
+  LayerDisable(ecs, "box1", "box2");
+  LayerDisable(ecs, "box3", "player");
+  LayerDisableAll(ecs, "box4");
+
+  Entity A = EcsEntity(ecs, "A");
+  AddComponent(ecs, A, Collider, ColliderCube(3, true));
+  AddComponent(ecs, A, Transform, TransformOrigin);
+  AddComponent(ecs, A, RotationSpeed, RA);
+  AddComponent(ecs, A, CollisionListener, {AHandler});
+  RigidBody rbA = RigidBodyDynamic(300, 1.5f);
+  rbA.gravity = false;
+  AddComponent(ecs, A, RigidBody, rbA);
+  AddScript(ecs, A, MoveScript, EcsOnUpdate);
+  AddScript(ecs, A, GridScript, EcsOnRender);
+  EntitySetLayer(ecs, A, "player");
+
+  Entity B = EcsEntity(ecs, "B");
+  AddComponent(ecs, B, Collider, ColliderCube(4, true));
+  AddComponent(ecs, B, Transform, TransformPosition(10, 0, 10));
+  AddComponent(ecs, B, RotationSpeed, RB);
+  RigidBody rbB = RigidBodyDynamic(200, 1.5f);
+  rbB.gravity = false;
+  AddComponent(ecs, B, RigidBody, rbB);
+  AddScript(ecs, B, RotateScript, EcsOnUpdate);
+  EntitySetLayer(ecs, B, "box1");
+
+  Entity C = EcsEntity(ecs, "C");
+  AddComponent(ecs, C, Collider, ColliderCube(2, true));
+  AddComponent(ecs, C, Transform, TransformPosition(-10, 0, 10));
+  AddComponent(ecs, C, RotationSpeed, RC);
+  AddComponent(ecs, C, RigidBody, RigidBodyStatic);
+  AddScript(ecs, C, RotateScript, EcsOnUpdate);
+  EntitySetLayer(ecs, C, "box2");
+
+  Entity D = EcsEntity(ecs, "D");
+  AddComponent(ecs, D, Collider, ColliderCube(6, true));
+  AddComponent(ecs, D, Transform, TransformPosition(-10, 0, -10));
+  AddComponent(ecs, D, RotationSpeed, RD);
+  AddComponent(ecs, D, RigidBody, RigidBodyStatic);
+  AddScript(ecs, D, RotateScript, EcsOnUpdate);
+  EntitySetLayer(ecs, D, "box3");
+
+  Entity E = EcsEntity(ecs, "E");
+  AddComponent(ecs, E, Collider, ColliderCube(6, true));
+  AddComponent(ecs, E, Transform, TransformPosition(10, 0, -10));
+  AddComponent(ecs, E, RotationSpeed, RE);
+  AddComponent(ecs, E, RigidBody, RigidBodyStatic);
+  AddScript(ecs, E, RotateScript, EcsOnUpdate);
+  EntitySetLayer(ecs, E, "box4");
+
+  System(ecs, DebugColliderSystem, EcsOnRender, Transform, Collider);
+
+  EcsLoop(ecs);
   EcsFree(ecs);
   CloseWindow();
+
   return 0;
 }
