@@ -186,13 +186,13 @@ typedef struct {
  * @param type BodyType enum value
  * @return RigidBody initializer
  */
-#define RigidBodyCreate(mass, damping, type)                                   \
-  {(mass > 0) ? mass : INFINITY,                                               \
-   (mass > 0) ? 1.f / mass : 0,                                                \
-   damping,                                                                    \
-   type,                                                                       \
-   (type == BodyDynamic) ? true : false,                                       \
-   {0, 0, 0},                                                                  \
+#define RigidBodyCreate(mass, damping, type)                                             \
+  {(mass > 0) ? mass : INFINITY,                                                         \
+   (mass > 0) ? 1.f / mass : 0,                                                          \
+   damping,                                                                              \
+   type,                                                                                 \
+   (type == BodyDynamic) ? true : false,                                                 \
+   {0, 0, 0},                                                                            \
    {0, 0, 0}}
 
 /**
@@ -220,8 +220,7 @@ typedef struct {
  *
  * Example: AddComponent(world, e, RigidBody, RigidBodyDynamic(300.f, 1.52f));
  */
-#define RigidBodyDynamic(mass, damping)                                        \
-  RigidBodyCreate(mass, damping, BodyDynamic)
+#define RigidBodyDynamic(mass, damping) RigidBodyCreate(mass, damping, BodyDynamic)
 
 /**
  * Creates a kinematic rigid body.
@@ -236,8 +235,7 @@ typedef struct {
  *
  * Example: AddComponent(world, e, RigidBody, RigidBodyKinematic(0, 0.95f));
  */
-#define RigidBodyKinematic(mass, damping)                                      \
-  RigidBodyCreate(mass, damping, BodyKinematic)
+#define RigidBodyKinematic(mass, damping) RigidBodyCreate(mass, damping, BodyKinematic)
 
 /**
  * Applies a continuous force to a rigid body.
@@ -327,81 +325,56 @@ void AddScript(ECS *ecs, Entity e, Script s, EcsPhase phase);
 // ########### //
 
 /**
- * Parent component for entity hierarchy.
+ * @brief Hierarchical relationship component.
  *
- * Links an entity to its parent in the hierarchy. Used with Transform
- * to implement hierarchical transformations where child entities
- * inherit parent transformations.
+ * Represents an entity within a tree hierarchy using a doubly linked list
+ * representation for siblings. Each entity can have at most one parent
+ * and any number of children.
+ *
+ * Children of the same parent are connected through the
+ * @ref leftSibling and @ref rightSibling links, while the parent stores
+ * a reference only to its first child.
+ *
+ * Example:
+ * @code
+ * AddComponent(world, entityA, Hierarchy, {invalidID, InvalidID, InvalidID, entityB});
+ * @endcode
+ *
+ * @see InvalidID for
+ * @see EntitySetParent() for automatic attachment
+ * @see EntityAddChild() for automatic attatchment
  */
 typedef struct {
-  Entity entity; ///< Parent entity ID
-} Parent;
+  Entity parent;       ///< Entity parent. InvalidID if it has no parent.
+  Entity leftSibling;  ///< Previous sibling. InvalidID for first child.
+  Entity rightSibling; ///< Next sibling. InvalidID for last child.
+  Entity firstChild;   ///< First child. InvalidID if it has no children.
+} Hierarchy;
 
 /**
- * Children component for entity hierarchy.
+ * @brief Attach parent and child entities within a hierarchical relationship.
  *
- * Maintains a list of child entities. Used internally by the hierarchy
- * system to manage parent-child relationships and enable operations
- * on all children of an entity.
- *
- * @note Using this component's fields is deprecated. Use foreach functions
- * instead.
- *
- * @see ForEachChild()
- * @see ForEachChildRecursive()
- */
-typedef struct {
-  Entity *list;
-  Entity count;
-  Entity allocated;
-} Children;
-
-/**
- * Destructor for Children component.
- *
- * Automatically frees child list array memory when Children component
- * is removed or entity is destroyed. Registered with ComponentDynamic().
- *
- * @param self Pointer to Children instance
- */
-void ChildrenDestructor(void *self);
-
-/**
- * Sets a parent for an entity in the hierarchy.
- *
- * Removes the entity from its current parent (if any) and adds it
+ * Removes the child entity from its current parent (if any) and adds it
  * as a child of the specified parent. Automatically updates hierarchy
  * components on both entities.
  *
  * @param ecs Registry containing the entities
+ * @param parent Parent entity
+ * @param child Child entity
+ * @return false if it is not possible, true otherwise
+ */
+bool HierarchyAttach(ECS *ecs, Entity parent, Entity child);
+
+/**
+ * @brief Removes the parent from the entity in the hierarchy.
+ *
+ * Removes the entity from its current parent and automatically updates
+ * hierarchy components on both entities.
+ *
+ * @param ecs Registry containing the entities
  * @param e Child entity
- * @param p Parent entity
  */
-void AddParent(ECS *ecs, Entity e, Entity p);
-
-/**
- * Adds a child entity to another entity.
- *
- * Removes the child from its current parent (if any) and adds it as
- * a child of the specified parent.
- *
- * @param ecs Registry containing the entities
- * @param e Parent entity
- * @param c Child entity to add
- */
-void AddChild(ECS *ecs, Entity e, Entity c);
-
-/**
- * Removes a child from its parent.
- *
- * Removes the parent-child relationship between the specified entities.
- * The child becomes a root entity (no parent).
- *
- * @param ecs Registry containing the entities
- * @param e Parent entity
- * @param c Child entity to remove
- */
-void RemoveChild(ECS *ecs, Entity e, Entity c);
+void HierarchyDetach(ECS *ecs, Entity e);
 
 /**
  * Destroys an entity and removes it from hierarchy.
@@ -413,10 +386,10 @@ void RemoveChild(ECS *ecs, Entity e, Entity c);
  * @param ecs Registry containing the entity
  * @param e Entity to destroy
  *
- * @see DestroyRecursive() to destroy with all descendants
+ * @see EntityDestroyRecursive() to destroy with all descendants
  * @see EcsEntityFree() for basic entity destruction
  */
-void Destroy(ECS *ecs, Entity e);
+void EntityDestroy(ECS *ecs, Entity e);
 
 /**
  * Destroys an entity and all its descendants.
@@ -427,10 +400,10 @@ void Destroy(ECS *ecs, Entity e);
  * @param ecs Registry containing the entity
  * @param e Entity to destroy
  *
- * @see Destroy() to destroy without descendants
+ * @see EntityDestroy() to destroy without descendants
  * @see EcsEntityFree() for basic entity destruction
  */
-void DestroyRecursive(ECS *ecs, Entity e);
+void EntityDestroyRecursive(ECS *ecs, Entity e);
 
 /**
  * Executes a script on all direct children of an entity.
@@ -442,9 +415,9 @@ void DestroyRecursive(ECS *ecs, Entity e);
  * @param e Parent entity
  * @param s Script to execute on each child
  *
- * @see ForEachChildRecursive() for all descendants
+ * @see HierarchyForEachChildRecursive() for all descendants
  */
-void ForEachChild(ECS *ecs, Entity e, Script s);
+void HierarchyForEachChild(ECS *ecs, Entity e, Script s);
 
 /**
  * Executes a script on all descendants of an entity.
@@ -456,9 +429,9 @@ void ForEachChild(ECS *ecs, Entity e, Script s);
  * @param e Root entity
  * @param s Script to execute on each descendant
  *
- * @see ForEachChild() for direct children only
+ * @see HierarchyForEachChild() for direct children only
  */
-void ForEachChildRecursive(ECS *ecs, Entity e, Script s);
+void HierarchyForEachChildRecursive(ECS *ecs, Entity e, Script s);
 
 /**
  * Sets whether an entity (and its children) is active for system processing.

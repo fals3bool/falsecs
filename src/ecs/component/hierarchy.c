@@ -1,165 +1,132 @@
 #include <ecs/component.h>
 
-#include <stdlib.h>
+#include <assert.h>
 
-// Component cleanup function
-void ChildrenDestructor(void *self) {
-  Children *children = (Children *)self;
-  if (children && children->list) {
-    free(children->list);
-    children->list = NULL;
-    children->count = 0;
-    children->allocated = 0;
+void HierarchyDetach(ECS *ecs, Entity e) {
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  if (!h || h->parent == InvalidID)
+    return;
+
+  if (h->leftSibling == InvalidID) { // parent
+    Hierarchy *parent = GetComponent(ecs, h->parent, Hierarchy);
+    assert(parent != NULL);
+    parent->firstChild = h->rightSibling;
+  } else { // left sibling
+    Hierarchy *left = GetComponent(ecs, h->leftSibling, Hierarchy);
+    left->rightSibling = h->rightSibling;
   }
+  // right sibling
+  if (h->rightSibling != InvalidID) {
+    Hierarchy *right = GetComponent(ecs, h->rightSibling, Hierarchy);
+    right->leftSibling = h->leftSibling;
+  }
+
+  h->parent = InvalidID;
+  h->leftSibling = InvalidID;
+  h->rightSibling = InvalidID;
 }
 
-// Every parent operation will call the children operation with swapped entities
-// and change the parent component.
-//
-// The children operation is the one with the logic.
+bool HierarchyAttach(ECS *ecs, Entity parent, Entity child) {
+  if (child == parent)
+    return false;
 
-bool SetParent(ECS *ecs, Entity e, Entity p) {
-  Parent *old = GetComponent(ecs, e, Parent);
-  if (old && old->entity == p)
-    return true;
+  for (Entity p = parent; p != InvalidID;) {
+    if (p == child)
+      return false;
 
-  if (old)
-    RemoveChild(ecs, old->entity, e);
-  AddComponent(ecs, e, Parent, {p});
+    Hierarchy *h = GetComponent(ecs, p, Hierarchy);
+    if (!h)
+      break;
+    p = h->parent;
+  }
+
+  HierarchyDetach(ecs, child); // remove current parent
+
+  Component comp = ComponentID(ecs, Hierarchy);
+
+  if (!EcsHasComponent(ecs, parent, comp))
+    AddComponent(ecs, parent, Hierarchy, {InvalidID, InvalidID, InvalidID, InvalidID});
+  Hierarchy *p = GetComponent(ecs, parent, Hierarchy);
+
+  if (!EcsHasComponent(ecs, child, comp))
+    AddComponent(ecs, child, Hierarchy, {InvalidID, InvalidID, InvalidID, InvalidID});
+  Hierarchy *c = GetComponent(ecs, child, Hierarchy);
+
+  c->parent = parent;
+  c->leftSibling = InvalidID;
+  c->rightSibling = p->firstChild;
+
+  if (p->firstChild != InvalidID) {
+    Hierarchy *first = GetComponent(ecs, p->firstChild, Hierarchy);
+    first->leftSibling = child;
+  }
+
+  p->firstChild = child;
+  EntitySetActive(ecs, child, EntityIsActive(ecs, parent));
+  EntitySetVisible(ecs, child, EntityIsVisible(ecs, parent));
   return true;
 }
 
-bool SetChild(ECS *ecs, Entity e, Entity c) {
-  // E child of C child of E -> loop! (recursively)
-  Parent *parent = GetComponent(ecs, e, Parent);
-  while (parent) {
-    if (parent->entity == c)
-      return false;
-    parent = GetComponent(ecs, parent->entity, Parent);
-  }
-
-  Children *children = GetComponent(ecs, e, Children);
-  if (children) {
-    // Was already added?
-    for (Entity i = 0; i < children->count; i++)
-      if (children->list[i] == c)
-        return false;
-
-    // add to existing component, realloc if necessary
-    if (children->count >= children->allocated) {
-      size_t new_allocated = children->allocated ? children->allocated * 2 : 4;
-      Entity *new_list =
-          realloc(children->list, sizeof(Entity) * new_allocated);
-      if (!new_list) {
-        return false; // Reallocation failed
-      }
-      children->list = new_list;
-      children->allocated = new_allocated;
-    }
-    children->list[children->count++] = c;
-  } else {
-    // add within a new component instance
-    Entity *list = malloc(sizeof(Entity));
-    if (!list)
-      return false;
-    list[0] = c;
-    AddComponent(ecs, e, Children, {list, 1, 1});
-  }
-
-  // Hierarchical entitydata states
-  EntitySetActive(ecs, c, EntityIsActive(ecs, e));
-  EntitySetVisible(ecs, c, EntityIsVisible(ecs, e));
-  return true;
+static inline Entity HierarchyNextSibling(ECS *ecs, Entity e) {
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  return h ? h->rightSibling : InvalidID;
 }
 
-void AddParent(ECS *ecs, Entity e, Entity p) { AddChild(ecs, p, e); }
-
-void AddChild(ECS *ecs, Entity e, Entity c) {
-  if (e == c)
-    return;
-  if (SetChild(ecs, e, c))
-    SetParent(ecs, c, e);
-}
-
-void RemoveParent(ECS *ecs, Entity e) {
-  Parent *parent = GetComponent(ecs, e, Parent);
-  if (parent)
-    RemoveChild(ecs, parent->entity, e);
-}
-
-void RemoveChild(ECS *ecs, Entity e, Entity c) {
-  Children *children = GetComponent(ecs, e, Children);
-  if (!children || children->count <= 0)
-    return;
-  // replaced by last one
-  // if count == 1 replaced by itself
-  // ALWAYS count--; so id is never used until reasigned again.
-  for (Entity i = 0; i < children->count; i++) {
-    if (children->list[i] == c)
-      children->list[i] = children->list[--children->count];
+void EntityDestroy(ECS *ecs, Entity e) {
+  HierarchyDetach(ecs, e);
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  for (Entity c = h->firstChild; c != InvalidID;) {
+    Entity next = HierarchyNextSibling(ecs, c);
+    HierarchyDetach(ecs, c);
+    c = next;
   }
-
-  RemoveComponent(ecs, c, Parent);
-  if (children->count == 0)
-    RemoveComponent(ecs, e, Children);
-}
-
-void Destroy(ECS *ecs, Entity e) {
-  RemoveParent(ecs, e);
-
-  Children *children = GetComponent(ecs, e, Children);
-  if (children) {
-    for (Entity i = 0; i < children->count; i++)
-      RemoveParent(ecs, children->list[i]);
-  }
-
   EcsEntityFree(ecs, e);
 }
 
-void DestroyRecursive(ECS *ecs, Entity e) {
-  RemoveParent(ecs, e);
-
-  Children *children = GetComponent(ecs, e, Children);
-  if (children) {
-    for (Entity i = 0; i < children->count; i++)
-      DestroyRecursive(ecs, children->list[i]);
+void EntityDestroyRecursive(ECS *ecs, Entity e) {
+  HierarchyDetach(ecs, e);
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  for (Entity c = h->firstChild; c != InvalidID;) {
+    Entity next = HierarchyNextSibling(ecs, c);
+    EntityDestroyRecursive(ecs, c);
+    c = next;
   }
-
   EcsEntityFree(ecs, e);
 }
 
-void ForEachChild(ECS *ecs, Entity e, Script s) {
-  Children *children = GetComponent(ecs, e, Children);
-  if (children) {
-    for (Entity i = 0; i < children->count; i++)
-      s(ecs, children->list[i]);
+void HierarchyForEachChild(ECS *ecs, Entity e, Script s) {
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  for (Entity c = h->firstChild; c != InvalidID;) {
+    Entity next = HierarchyNextSibling(ecs, c);
+    s(ecs, c);
+    c = next;
   }
 }
 
-void ForEachChildRecursive(ECS *ecs, Entity e, Script s) {
-  Children *children = GetComponent(ecs, e, Children);
-  if (children) {
-    for (Entity i = 0; i < children->count; i++) {
-      s(ecs, children->list[i]);
-      ForEachChildRecursive(ecs, children->list[i], s);
-    }
+void HierarchyForEachChildRecursive(ECS *ecs, Entity e, Script s) {
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  for (Entity c = h->firstChild; c != InvalidID;) {
+    Entity next = HierarchyNextSibling(ecs, c);
+    s(ecs, c);
+    HierarchyForEachChildRecursive(ecs, c, s);
+    c = next;
   }
 }
 
 void EntitySetActive(ECS *ecs, Entity e, bool active) {
   EntitySetActiveSelf(ecs, e, active);
-  Children *children = GetComponent(ecs, e, Children);
-  if (children) {
-    for (Entity i = 0; i < children->count; i++)
-      EntitySetActive(ecs, children->list[i], active);
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  for (Entity c = h->firstChild; c != InvalidID;) {
+    EntitySetActive(ecs, c, active);
+    c = HierarchyNextSibling(ecs, c);
   }
 }
 
 void EntitySetVisible(ECS *ecs, Entity e, bool visible) {
   EntitySetVisibleSelf(ecs, e, visible);
-  Children *children = GetComponent(ecs, e, Children);
-  if (children) {
-    for (Entity i = 0; i < children->count; i++)
-      EntitySetVisible(ecs, children->list[i], visible);
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  for (Entity c = h->firstChild; c != InvalidID;) {
+    EntitySetVisible(ecs, c, visible);
+    c = HierarchyNextSibling(ecs, c);
   }
 }

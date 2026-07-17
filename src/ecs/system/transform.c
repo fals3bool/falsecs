@@ -2,10 +2,12 @@
 #include <ecs/system.h>
 
 void HierarchyTransformSystem(ECS *ecs, Entity e) {
-  Parent *p = GetComponent(ecs, e, Parent);
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  if (h->parent == InvalidID)
+    return;
   Transform *t = GetComponent(ecs, e, Transform);
   LocalTransform *tl = GetComponent(ecs, e, LocalTransform);
-  Transform *tp = GetComponent(ecs, p->entity, Transform);
+  Transform *tp = GetComponent(ecs, h->parent, Transform);
   if (!tp)
     return;
   t->translation = Vector3Add(tp->translation, tl->translation);
