@@ -25,6 +25,7 @@
 //  TRANSFORM  //
 // ########### //
 
+// Same data structure, used for hierarchy transformation.
 typedef Transform LocalTransform;
 
 /**
@@ -204,7 +205,7 @@ typedef struct {
  *
  * Example: AddComponent(world, e, RigidBody, RigidBodyStatic);
  */
-#define RigidBodyStatic RigidBodyCreate(0, 0, BodyStatic)
+#define RigidBodyStatic RigidBodyCreate(INFINITY, 0, BodyStatic)
 
 /**
  * Creates a dynamic rigid body.
@@ -466,9 +467,9 @@ void ForEachChildRecursive(ECS *ecs, Entity e, Script s);
  * @param e Entity to modify
  * @param active true for activated, false for deactivated
  *
- * @see EntitySetActive() to ignore entity children
+ * @see EntitySetActiveSelf() to ignore entity children
  */
-void SetActive(ECS *ecs, Entity e, bool active);
+void EntitySetActive(ECS *ecs, Entity e, bool active);
 
 /**
  * Sets whether an entity (and its children) is visible for rendering.
@@ -477,8 +478,8 @@ void SetActive(ECS *ecs, Entity e, bool active);
  * @param e Entity to modify
  * @param visible true for visible, false for hidden
  *
- * @see EntitySetVisible() to ignore entity children
+ * @see EntitySetVisibleSelf() to ignore entity children
  */
-void SetVisible(ECS *ecs, Entity e, bool visible);
+void EntitySetVisible(ECS *ecs, Entity e, bool visible);
 
 #endif

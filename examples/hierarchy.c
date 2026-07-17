@@ -64,7 +64,8 @@ int main(void) {
 
   printf("¬-¬-¬-¬-¬-¬-¬-¬-¬-\nHierarchy changed\n¬-¬-¬-¬-¬-¬-¬-¬-¬-\n\n");
 
-  // The API will refuse to add a parent or child to prevent errors, like loops or duplications
+  // The API will refuse to add a parent or child to prevent errors, like loops
+  // or duplications
 
   AddChild(ecs, A, C); // remove child from B, move to A
   AddChild(ecs, C, C); // cannot
@@ -78,11 +79,11 @@ int main(void) {
   AddParent(ecs, A, C); // remove child from B, move to C
   AddParent(ecs, B, A); // cannot
 
-  SetActive(ecs, C, false);  // deactivate C its children (recursively)
-  SetVisible(ecs, C, false); // hide C and its children (recursively)
+  EntitySetActive(ecs, C, false);  // deactivate C its children (recursively)
+  EntitySetVisible(ecs, C, false); // hide C and its children (recursively)
 
   // Deactivated entities won't be read by systems
-  SetActive(ecs, B, true); // activate B and its children (recursively)
+  EntitySetActive(ecs, B, true); // activate B and its children (recursively)
 
   EcsRunSystems(ecs, 0);
 
@@ -90,7 +91,7 @@ int main(void) {
   Destroy(ecs, B); // destroy B, remove parent from C
   // EntityDestroyRecursive(ecs, C); // destroy C and children...
 
-  EntitySetVisible(ecs, C, true); // ignore children
+  EntitySetVisibleSelf(ecs, C, true); // ignore children
   EcsRunSystems(ecs, 0);
 
   return 0;

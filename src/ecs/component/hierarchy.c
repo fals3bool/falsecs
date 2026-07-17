@@ -67,8 +67,8 @@ bool SetChild(ECS *ecs, Entity e, Entity c) {
   }
 
   // Hierarchical entitydata states
-  SetActive(ecs, c, EntityIsActive(ecs, e));
-  SetVisible(ecs, c, EntityIsVisible(ecs, e));
+  EntitySetActive(ecs, c, EntityIsActive(ecs, e));
+  EntitySetVisible(ecs, c, EntityIsVisible(ecs, e));
   return true;
 }
 
@@ -146,20 +146,20 @@ void ForEachChildRecursive(ECS *ecs, Entity e, Script s) {
   }
 }
 
-void SetActive(ECS *ecs, Entity e, bool active) {
-  EntitySetActive(ecs, e, active);
+void EntitySetActive(ECS *ecs, Entity e, bool active) {
+  EntitySetActiveSelf(ecs, e, active);
   Children *children = GetComponent(ecs, e, Children);
   if (children) {
     for (Entity i = 0; i < children->count; i++)
-      SetActive(ecs, children->list[i], active);
+      EntitySetActive(ecs, children->list[i], active);
   }
 }
 
-void SetVisible(ECS *ecs, Entity e, bool visible) {
-  EntitySetVisible(ecs, e, visible);
+void EntitySetVisible(ECS *ecs, Entity e, bool visible) {
+  EntitySetVisibleSelf(ecs, e, visible);
   Children *children = GetComponent(ecs, e, Children);
   if (children) {
     for (Entity i = 0; i < children->count; i++)
-      SetVisible(ecs, children->list[i], visible);
+      EntitySetVisible(ecs, children->list[i], visible);
   }
 }

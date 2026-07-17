@@ -247,7 +247,7 @@ bool EntityHasTag(ECS *ecs, Entity e, char *tag) {
   return strcmp(ecs->entities[e].tag, tag) == 0;
 }
 
-void EntitySetActive(ECS *ecs, Entity e, bool active) {
+void EntitySetActiveSelf(ECS *ecs, Entity e, bool active) {
   assert(e < MaxEntities && "Invalid entity");
   assert(e < ecs->entity_count && "Entity does not exist");
   ecs->entities[e].active = active;
@@ -259,7 +259,7 @@ bool EntityIsActive(ECS *ecs, Entity e) {
   return ecs->entities[e].active;
 }
 
-void EntitySetVisible(ECS *ecs, Entity e, bool visible) {
+void EntitySetVisibleSelf(ECS *ecs, Entity e, bool visible) {
   assert(e < MaxEntities && "Invalid entity");
   assert(e < ecs->entity_count && "Entity does not exist");
   ecs->entities[e].visible = visible;

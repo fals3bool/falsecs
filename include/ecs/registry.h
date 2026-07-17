@@ -234,9 +234,9 @@ bool EntityHasTag(ECS *ecs, Entity e, char *tag);
  * @param active true for activated, false for deactivated
  *
  * @see EntityIsActive() to check state
- * @see EntitySetVisible() for render control
+ * @see EntitySetVisibleSelf() for render control
  */
-void EntitySetActive(ECS *ecs, Entity e, bool active);
+void EntitySetActiveSelf(ECS *ecs, Entity e, bool active);
 
 /**
  * Checks if an entity is active for Update systems.
@@ -258,9 +258,9 @@ bool EntityIsActive(ECS *ecs, Entity e);
  * @param visible true for visible, false for hidden
  *
  * @see EntityIsVisible() to check state
- * @see EntitySetActive() for update control
+ * @see EntitySetActiveSelf() for update control
  */
-void EntitySetVisible(ECS *ecs, Entity e, bool visible);
+void EntitySetVisibleSelf(ECS *ecs, Entity e, bool visible);
 
 /**
  * Checks if an entity is visible for Render systems.
