@@ -58,22 +58,50 @@ typedef Transform LocalTransform;
 //  COLLIDER  //
 // ########## //
 
+typedef enum {
+  Box,
+  Sphere,
+  Capsule,
+  Convex,
+} ColliderShape;
+
+typedef struct {
+  Vector3 center;
+  float width;
+  float height;
+  float length;
+} BoxShape;
+
+typedef struct {
+  Vector3 center;
+  float radius;
+} SphereShape;
+
+typedef struct {
+  Vector3 top;
+  Vector3 bottom;
+  float radius;
+  float height;
+} CapsuleShape;
+
+typedef struct {
+  Vector3 *vx;      ///< Array of vertices
+  Vector3 *md;      ///< Axis-aligned vertices located at origin (model)
+  uint8_t vertices; ///< Number of vertices
+} ConvexShape;
+
 /**
  * 3D Collider
  *
  * Supports both solid colliders (block movement) and trigger colliders
- * (detect overlap without blocking). Uses polygon-based collision with
- * configurable vertices. Collision filtering is handled through entity layers
- * managed by the registry.
+ * (detect overlap without blocking). Collision filtering is handled through
+ * entity layers managed by the registry.
  */
 typedef struct {
-  Vector3 *vx;      ///< Array of vertices
-  Vector3 *md;      ///< Axis-aligned vertices located at origin (model)
-  uint8_t *edge;    ///< Shape edges with vertex index, used for rendering.
-  uint8_t vertices; ///< Number of vertices
-  uint8_t edges;    ///< Number of edges
-  bool solid;       ///< true for solid, false for trigger
-  bool overlap;     ///< Collision overlap flag
+  ColliderShape type;
+  void *shape;  ///< Geometric data
+  bool solid;   ///< true for solid, false for trigger
+  bool overlap; ///< Collision overlap flag
 } Collider;
 
 /**
@@ -95,7 +123,14 @@ void ColliderDestructor(void *self);
  *
  * @see ColliderDestructor
  */
-Collider ColliderCube(float size, bool solid);
+
+Collider ColliderBox(float width, float height, float length, bool solid);
+
+Collider ColliderCapsule(float radius, float height, bool solid);
+
+Collider ColliderSphere(float radius, bool solid);
+
+Collider ColliderConvex(Vector3 *model, uint8_t vertices, bool solid);
 
 /**
  * Collision data.
