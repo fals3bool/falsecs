@@ -58,54 +58,85 @@ typedef Transform LocalTransform;
 //  COLLIDER  //
 // ########## //
 
+/**
+ * @brief Supported collider geometry types.
+ *
+ * Each type corresponds to a shape struct that holds the specific
+ * geometric data for collision detection.
+ */
 typedef enum {
-  Box,
-  Sphere,
-  Capsule,
-  Convex,
+  Box,     ///< Axis-aligned box (BoxShape)
+  Sphere,  ///< Bounding sphere (SphereShape)
+  Capsule, ///< Capsule shape (CapsuleShape)
+  Convex,  ///< Convex hull from vertices (ConvexShape)
 } ColliderShape;
 
+/**
+ * @brief Axis-aligned box collider shape.
+ *
+ * Defined by a center point and box bounds.
+ */
 typedef struct {
-  Vector3 center;
-  float width;
-  float height;
-  float length;
+  Vector3 center; ///< Center of the box
+  float width;    ///< Box width along X axis
+  float height;   ///< Box height along Y axis
+  float length;   ///< Box length along Z axis
 } BoxShape;
 
+/**
+ * @brief Bounding sphere collider shape.
+ *
+ * Simplest collision shape; defined by center and radius.
+ */
 typedef struct {
-  Vector3 center;
-  float radius;
+  Vector3 center; ///< Center of the sphere
+  float radius;   ///< Radius of the sphere
 } SphereShape;
 
+/**
+ * @brief Capsule collider shape.
+ *
+ * A cylinder with hemispherical ends, defined by two endpoints
+ * (top and bottom) and a radius.
+ */
 typedef struct {
-  Vector3 top;
-  Vector3 bottom;
-  float radius;
-  float height;
+  Vector3 top;    ///< Center of the top hemisphere
+  Vector3 bottom; ///< Center of the bottom hemisphere
+  float radius;   ///< Radius of the capsule
+  float height;   ///< Height of the cylindrical section
 } CapsuleShape;
 
+/**
+ * @brief Convex hull collider shape.
+ *
+ * Arbitrary convex polygon defined by a set of vertices.
+ * The vertex arrays are heap-allocated.
+ */
 typedef struct {
-  Vector3 *vx;      ///< Array of vertices
-  Vector3 *md;      ///< Axis-aligned vertices located at origin (model)
+  Vector3 *vx;      ///< Array of vertices in world space
+  Vector3 *md;      ///< Axis-aligned vertices at origin (model data)
   uint8_t vertices; ///< Number of vertices
 } ConvexShape;
 
 /**
- * 3D Collider
+ * @brief 3D Collider
  *
- * Supports both solid colliders (block movement) and trigger colliders
- * (detect overlap without blocking). Collision filtering is handled through
- * entity layers managed by the registry.
+ * Uses shapes to store geometric data, which is heap-allocated.
+ *
+ * Supports both solid (block movement) and trigger colliders
+ * (detect overlap without blocking).
+ * Collision filtering is handled through entity layers managed
+ * by the registry.
  */
 typedef struct {
-  ColliderShape type;
-  void *shape;  ///< Geometric data
-  bool solid;   ///< true for solid, false for trigger
-  bool overlap; ///< Collision overlap flag
+  ColliderShape type; ///< shape type
+  void *shape;        ///< Shape data
+  bool solid;         ///< Whether the collider blocks movement or acts as a trigger.
+  bool overlap;       ///< Collision overlap flag
 } Collider;
 
 /**
- * Destructor for Collider component.
+ * @brief Destructor for Collider component.
  *
  * Automatically frees vertex array memory when collider is removed
  * or entity is destroyed. Registered with ComponentDynamic().
@@ -115,25 +146,58 @@ typedef struct {
 void ColliderDestructor(void *self);
 
 /**
- * Creates a cube collider
+ * @brief Creates a box collider.
  *
- * @param size distance between adjacent vertices
- * @param solid true for solid, false for trigger
- * @return Collider instace
+ * @param width Width along the X axis
+ * @param height Height along the Y axis
+ * @param length Length along the Z axis
+ * @param solid Whether the collider is solid or acts as a trigger
+ * @return A box Collider instance
  *
- * @see ColliderDestructor
+ * @see ColliderDestructor()
  */
-
 Collider ColliderBox(float width, float height, float length, bool solid);
 
+/**
+ * @brief Creates a capsule collider.
+ *
+ * @param radius Radius of the capsule
+ * @param height Height of the cylindrical section
+ * @param solid Whether the collider is solid or acts as a trigger
+ * @return A capsule Collider instance
+ *
+ * @see ColliderDestructor()
+ */
 Collider ColliderCapsule(float radius, float height, bool solid);
 
+/**
+ * @brief Creates a sphere collider.
+ *
+ * @param radius Radius of the sphere
+ * @param solid Whether the collider is solid or acts as a trigger
+ * @return A sphere Collider instance
+ *
+ * @see ColliderDestructor()
+ */
 Collider ColliderSphere(float radius, bool solid);
 
+/**
+ * @brief Creates a convex hull collider from a vertex array.
+ *
+ * The vertex array is copied internally; the caller retains ownership
+ * of the original data.
+ *
+ * @param model Array of vertices defining the convex hull
+ * @param vertices Number of vertices (max 255)
+ * @param solid Whether the collider is solid or acts as a trigger
+ * @return A convex hull Collider instance
+ *
+ * @see ColliderDestructor()
+ */
 Collider ColliderConvex(Vector3 *model, uint8_t vertices, bool solid);
 
 /**
- * Collision data.
+ * @brief Collision data.
  *
  * Contains information about collision normal and penetration depth
  * for collision resolution and response.
@@ -144,7 +208,7 @@ typedef struct {
 } Collision;
 
 /**
- * Collision event between two entities.
+ * @brief Collision event between two entities.
  *
  * Passed to collision handlers with information about
  * the colliding entities and collision details.
@@ -156,7 +220,7 @@ typedef struct {
 } CollisionEvent;
 
 /**
- * Collision handler function type.
+ * @brief Collision handler function type.
  *
  * Function called when collision occurs.
  *
@@ -166,7 +230,7 @@ typedef struct {
 typedef void (*CollisionHandler)(ECS *, CollisionEvent *);
 
 /**
- * Component for receiving collision events.
+ * @brief Component for receiving collision events.
  */
 typedef struct {
   // CollisionHandler OnCollisionEnter;  ///< TODO: Collision start handler
@@ -288,7 +352,7 @@ void ApplyForce(RigidBody *rb, Vector3 force);
 /**
  * Applies an instantaneous impulse to a rigid body.
  *
- * Impulse immediately changes velocity regardless of mass.
+ * Impulse immediately changes velocity.
  * Use for sudden impacts, explosions, jumps.
  *
  * @param rb RigidBody to apply impulse to
@@ -317,6 +381,8 @@ void ApplyDamping(RigidBody *rb);
 /**
  * 2D sprite rendering component.
  *
+ * Wraps a raylib texture with source rectangle and tint for
+ * sprite-sheet support and color modulation.
  */
 typedef struct {
   Texture tex;   ///< Raylib texture to render
@@ -349,7 +415,7 @@ typedef struct {
  * @param ecs Registry containing the entity
  * @param e Entity to add script to
  * @param s Script to add
- * @param ly System layer to run script in
+ * @param phase System phase to run script in
  *
  * Example: AddScript(world, player, PlayerUpdate, EcsOnUpdate);
  */
@@ -372,12 +438,12 @@ void AddScript(ECS *ecs, Entity e, Script s, EcsPhase phase);
  *
  * Example:
  * @code
- * AddComponent(world, entityA, Hierarchy, {invalidID, InvalidID, InvalidID, entityB});
+ * AddComponent(world, entityA, Hierarchy, {InvalidID, InvalidID, InvalidID, entityB});
  * @endcode
  *
- * @see InvalidID for
+ * @see InvalidID for sentinel value
  * @see EntitySetParent() for automatic attachment
- * @see EntityAddChild() for automatic attatchment
+ * @see EntityAddChild() for automatic attachment
  */
 typedef struct {
   Entity parent;       ///< Entity parent. InvalidID if it has no parent.

@@ -1,8 +1,8 @@
 #include <ecs/component.h>
 #include <ecs/system.h>
 
-static Color normal = {102, 191, 255, 128};
-static Color hit = {230, 41, 55, 128};
+static Color normal = {102, 191, 255, 64};
+static Color hit = {230, 41, 55, 64};
 
 void DebugColliderSystem(ECS *ecs, Entity e) {
   Collider *c = GetComponent(ecs, e, Collider);
