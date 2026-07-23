@@ -58,16 +58,16 @@ Collider ColliderConvex(Vector3 *model, uint8_t vertices, bool solid) {
   return c;
 }
 
-void ColliderDestructor(void *_self) {
-  Collider *self = (Collider *)_self;
-  if (self->shape == NULL)
+void ColliderDestructor(void *ptr) {
+  Collider *c = (Collider *)ptr;
+  if (c->shape == NULL)
     return;
-  if (self->type == Convex) {
-    ConvexShape *s = (ConvexShape *)self->shape;
+  if (c->type == Convex) {
+    ConvexShape *s = (ConvexShape *)c->shape;
     if (s->vertices > 0) {
       free(s->vx);
       free(s->md);
     }
   }
-  free(self->shape);
+  free(c->shape);
 }

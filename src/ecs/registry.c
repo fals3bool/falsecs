@@ -1,4 +1,3 @@
-#include "raylib.h"
 #include <ecs/registry.h>
 
 #include <mem/array.h>

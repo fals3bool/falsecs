@@ -136,16 +136,6 @@ typedef struct {
 } Collider;
 
 /**
- * @brief Destructor for Collider component.
- *
- * Automatically frees vertex array memory when collider is removed
- * or entity is destroyed. Registered with ComponentDynamic().
- *
- * @param self Pointer to Collider instance
- */
-void ColliderDestructor(void *self);
-
-/**
  * @brief Creates a box collider.
  *
  * @param width Width along the X axis
@@ -195,6 +185,16 @@ Collider ColliderSphere(float radius, bool solid);
  * @see ColliderDestructor()
  */
 Collider ColliderConvex(Vector3 *model, uint8_t vertices, bool solid);
+
+/**
+ * @brief Destructor for Collider component.
+ *
+ * Automatically frees collider's shape when collider is removed
+ * or entity is destroyed. Registered with ComponentDynamic().
+ *
+ * @param ptr Pointer to Collider instance
+ */
+void ColliderDestructor(void *ptr);
 
 /**
  * @brief Collision data.
