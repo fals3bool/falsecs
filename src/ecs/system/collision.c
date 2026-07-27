@@ -42,23 +42,74 @@ static Vector3 Vector3TripleProduct(Vector3 a, Vector3 b, Vector3 c) {
                          Vector3Scale(c, Vector3DotProduct(a, b)));
 }
 
-static uint8_t FurthestPoint(Collider *a, Vector3 d) {
-  float fur = Vector3DotProduct(a->vx[0], d);
-  uint8_t furi = 0;
-  for (uint8_t i = 1; i < a->vertices; i++) {
-    float dot = Vector3DotProduct(a->vx[i], d);
-    if (dot > fur) {
-      fur = dot;
-      furi = i;
-    }
-  }
-  return furi;
+static Vector3 BoxSupport(const Collider *c, Vector3 d) {
+  const BoxShape *s = (BoxShape *)c->shape;
+  Vector3 half = {
+      s->width * 0.5f,
+      s->height * 0.5f,
+      s->length * 0.5f,
+  };
+  Vector3 fur = {s->center.x + (d.x >= 0 ? half.x : -half.x),
+                 s->center.y + (d.y >= 0 ? half.y : -half.y),
+                 s->center.z + (d.z >= 0 ? half.z : -half.z)};
+  return fur;
 }
 
-static Vector3 Support(Collider *a, Collider *b, Vector3 d) {
-  uint8_t i = FurthestPoint(a, d);
-  uint8_t j = FurthestPoint(b, Vector3Negate(d));
-  return Vector3Subtract(a->vx[i], b->vx[j]);
+static Vector3 CapsuleSupport(const Collider *c, Vector3 d) {
+  const CapsuleShape *s = (CapsuleShape *)c->shape;
+  float len = Vector3Length(d);
+  if (len <= 0.0f)
+    return s->top;
+  Vector3 dir = Vector3Scale(d, 1.0f / len);
+  float topDot = Vector3DotProduct(s->top, d);
+  float bottomDot = Vector3DotProduct(s->bottom, d);
+  Vector3 p = (topDot > bottomDot) ? s->top : s->bottom;
+  return Vector3Add(p, Vector3Scale(dir, s->radius));
+}
+
+static Vector3 SphereSupport(const Collider *c, Vector3 d) {
+  const SphereShape *s = (SphereShape *)c->shape;
+  float len = Vector3Length(d);
+  if (len <= 0.0f)
+    return s->center;
+  return Vector3Add(s->center, Vector3Scale(d, s->radius / len));
+}
+
+Vector3 ConvexSupport(const Collider *c, Vector3 d) {
+  const ConvexShape *s = (ConvexShape *)c->shape;
+  float fur = Vector3DotProduct(s->vx[0], d);
+  Vector3 furd = s->vx[0];
+  for (uint8_t i = 1; i < s->vertices; i++) {
+    float dot = Vector3DotProduct(s->vx[i], d);
+    if (dot > fur) {
+      fur = dot;
+      furd = s->vx[i];
+    }
+  }
+  return furd;
+}
+
+static Vector3 ShapeSupport(const Collider *c, Vector3 d) {
+  switch (c->type) {
+  case Box:
+    return BoxSupport(c, d);
+    break;
+  case Sphere:
+    return SphereSupport(c, d);
+    break;
+  case Capsule:
+    return CapsuleSupport(c, d);
+    break;
+  case Convex:
+    return ConvexSupport(c, d);
+    break;
+  }
+}
+
+static Vector3 Support(const Collider *a, const Collider *b, Vector3 d) {
+  Vector3 u = ShapeSupport(a, d);
+  Vector3 v = ShapeSupport(b, Vector3Negate(d));
+  return Vector3Subtract(u, v);
 }
 
 static bool DoSimplex(Simplex *s, Vector3 *d) {
@@ -155,10 +206,7 @@ static bool DoSimplex(Simplex *s, Vector3 *d) {
   return false;
 }
 
-static bool GJK(Transform *ta, Collider *ca, Transform *tb, Collider *cb,
-                Simplex *s) {
-
-  // P1
+static bool GJK(Transform *ta, Collider *ca, Transform *tb, Collider *cb, Simplex *s) {
   Vector3 D = Vector3Subtract(ta->translation, tb->translation);
   Vector3 A = Support(ca, cb, D);
   if (Vector3DotProduct(A, D) <= 0)
@@ -321,8 +369,8 @@ static Collision EPA(Collider *ca, Collider *cb, Simplex *s) {
   return c;
 }
 
-void ResolveCollision(Collision *input, Transform *ta, RigidBody *ra,
-                      Transform *tb, RigidBody *rb) {
+void ResolveCollision(Collision *input, Transform *ta, RigidBody *ra, Transform *tb,
+                      RigidBody *rb) {
   float invmassA = (ra && ra->type == BodyDynamic) ? ra->invmass : 0;
   float invmassB = (rb && rb->type == BodyDynamic) ? rb->invmass : 0;
   if (invmassA + invmassB == 0)
@@ -330,12 +378,11 @@ void ResolveCollision(Collision *input, Transform *ta, RigidBody *ra,
 
   float deltaMagnitude = input->distance / (invmassA + invmassB);
   Vector3 delta = Vector3Scale(input->normal, deltaMagnitude);
-  ta->translation =
-      Vector3Subtract(ta->translation, Vector3Scale(delta, invmassA));
+  ta->translation = Vector3Subtract(ta->translation, Vector3Scale(delta, invmassA));
   tb->translation = Vector3Add(tb->translation, Vector3Scale(delta, invmassB));
 
-  Vector3 deltaSpeed = Vector3Subtract(rb ? rb->speed : (Vector3){0},
-                                       ra ? ra->speed : (Vector3){0});
+  Vector3 deltaSpeed =
+      Vector3Subtract(rb ? rb->speed : (Vector3){0}, ra ? ra->speed : (Vector3){0});
   float speedAlongNormal = Vector3DotProduct(deltaSpeed, input->normal);
   if (speedAlongNormal > 0) // rigidbodies separated
     return;
@@ -349,8 +396,7 @@ void ResolveCollision(Collision *input, Transform *ta, RigidBody *ra,
     rb->speed = Vector3Add(rb->speed, Vector3Scale(impulse, invmassB));
 }
 
-void HandleCollisionEvents(ECS *ecs, Entity self, Entity other,
-                           Collision *collision) {
+void HandleCollisionEvents(ECS *ecs, Entity self, Entity other, Collision *collision) {
   CollisionListener *listener_a = GetComponent(ecs, self, CollisionListener);
   if (listener_a) {
     CollisionEvent event = {self, other, *collision};

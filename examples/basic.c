@@ -17,8 +17,7 @@ void MoveScript(ECS *ecs, Entity self) {
     d.x += 1;
 
   // Move
-  t->translation =
-      Vector3Add(t->translation, Vector3Scale(d, 100 * GetFrameTime()));
+  t->translation = Vector3Add(t->translation, Vector3Scale(d, 100 * GetFrameTime()));
 }
 
 int main(void) {
@@ -32,7 +31,7 @@ int main(void) {
   // Player entity
   Entity player = EcsEntity(world, "Player");
   AddComponent(world, player, Transform, TransformOrigin);
-  AddComponent(world, player, Collider, ColliderCube(10, false));
+  AddComponent(world, player, Collider, ColliderBox(10, 10, 10, false));
   AddScript(world, player, MoveScript, EcsOnUpdate);
 
   // Optional (debug) system

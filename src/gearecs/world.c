@@ -13,8 +13,7 @@ ECS *EcsWorld(void) {
   Component(ecs, Transform);
   Component(ecs, LocalTransform);
   Component(ecs, Behaviour);
-  Component(ecs, Parent);
-  ComponentDynamic(ecs, Children, ChildrenDestructor);
+  Component(ecs, Hierarchy);
   Component(ecs, Camera);
   Component(ecs, Sprite);
   ComponentDynamic(ecs, Collider, ColliderDestructor);
@@ -37,7 +36,7 @@ ECS *EcsWorld(void) {
   System(ecs, BehaviourRenderSystem, EcsOnRender, Behaviour);
   System(ecs, BehaviourGuiSystem, EcsOnGui, Behaviour);
 
-  System(ecs, HierarchyTransformSystem, EcsOnUpdate, Transform, Parent);
+  System(ecs, HierarchyTransformSystem, EcsOnUpdate, Transform, Hierarchy);
   System(ecs, TransformColliderSystem, EcsOnUpdate, Transform, Collider);
   System(ecs, CollisionSystem, EcsOnUpdate, Transform, Collider);
 

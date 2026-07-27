@@ -53,14 +53,14 @@ int main(void) {
   Entity box = EcsEntity(world, "box");
   AddComponent(world, box, PlayerData, {1, 20, true});
   AddComponent(world, box, Transform, TransformOrigin);
-  AddComponent(world, box, Collider, ColliderCube(1, true));
+  AddComponent(world, box, Collider, ColliderBox(1, 1, 1, true));
   AddComponent(world, box, CollisionListener, {OnGround});
   AddComponent(world, box, RigidBody, RigidBodyDynamic(0.5, 3));
   AddScript(world, box, ScriptMove, EcsOnFixedUpdate);
 
   Entity floor = EcsEntity(world, "floor");
   AddComponent(world, floor, Transform, TransformPosition(0, -10, 0));
-  AddComponent(world, floor, Collider, ColliderCube(20, true));
+  AddComponent(world, floor, Collider, ColliderBox(20, 1, 20, true));
   AddComponent(world, floor, RigidBody, RigidBodyStatic);
 
   System(world, DebugColliderSystem, EcsOnRender, Collider, Transform);

@@ -2,10 +2,12 @@
 #include <ecs/system.h>
 
 void HierarchyTransformSystem(ECS *ecs, Entity e) {
-  Parent *p = GetComponent(ecs, e, Parent);
+  Hierarchy *h = GetComponent(ecs, e, Hierarchy);
+  if (h->parent == InvalidID)
+    return;
   Transform *t = GetComponent(ecs, e, Transform);
   LocalTransform *tl = GetComponent(ecs, e, LocalTransform);
-  Transform *tp = GetComponent(ecs, p->entity, Transform);
+  Transform *tp = GetComponent(ecs, h->parent, Transform);
   if (!tp)
     return;
   t->translation = Vector3Add(tp->translation, tl->translation);
@@ -35,11 +37,42 @@ void TransformColliderSystem(ECS *ecs, Entity e) {
   Transform *t = GetComponent(ecs, e, Transform);
   Collider *c = GetComponent(ecs, e, Collider);
 
-  for (uint8_t i = 0; i < c->vertices; i++) {
-    Vector3 v = QuaternionRotateVector(t->rotation, c->md[i]);
-    c->vx[i].x = v.x + t->translation.x;
-    c->vx[i].y = v.y + t->translation.y;
-    c->vx[i].z = v.z + t->translation.z;
+  switch (c->type) {
+  case Box: {
+    BoxShape *s = (BoxShape *)c->shape;
+    s->center = t->translation;
+  } break;
+
+  case Sphere: {
+    SphereShape *s = (SphereShape *)c->shape;
+    s->center = t->translation;
+  } break;
+
+  case Capsule: {
+    CapsuleShape *s = (CapsuleShape *)c->shape;
+    float h = s->height * 0.5f;
+    Vector3 top = QuaternionRotateVector(t->rotation, (Vector3){0, h, 0});
+    s->top.x = top.x + t->translation.x;
+    s->top.y = top.y + t->translation.y;
+    s->top.z = top.z + t->translation.z;
+    Vector3 bottom = QuaternionRotateVector(t->rotation, (Vector3){0, -h, 0});
+    s->bottom.x = bottom.x + t->translation.x;
+    s->bottom.y = bottom.y + t->translation.y;
+    s->bottom.z = bottom.z + t->translation.z;
+  } break;
+
+  case Convex: {
+    ConvexShape *s = (ConvexShape *)c->shape;
+    for (uint8_t i = 0; i < s->vertices; i++) {
+      Vector3 v = QuaternionRotateVector(t->rotation, s->md[i]);
+      s->vx[i].x = v.x + t->translation.x;
+      s->vx[i].y = v.y + t->translation.y;
+      s->vx[i].z = v.z + t->translation.z;
+    }
+  } break;
+
+  default:
+    break;
   }
 
   c->overlap = false;

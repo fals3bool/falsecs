@@ -25,6 +25,7 @@
 //  TRANSFORM  //
 // ########### //
 
+// Same data structure, used for hierarchy transformation.
 typedef Transform LocalTransform;
 
 /**
@@ -58,46 +59,145 @@ typedef Transform LocalTransform;
 // ########## //
 
 /**
- * 3D Collider
+ * @brief Supported collider geometry types.
  *
- * Supports both solid colliders (block movement) and trigger colliders
- * (detect overlap without blocking). Uses polygon-based collision with
- * configurable vertices. Collision filtering is handled through entity layers
- * managed by the registry.
+ * Each type corresponds to a shape struct that holds the specific
+ * geometric data for collision detection.
+ */
+typedef enum {
+  Box,     ///< Axis-aligned box (BoxShape)
+  Sphere,  ///< Bounding sphere (SphereShape)
+  Capsule, ///< Capsule shape (CapsuleShape)
+  Convex,  ///< Convex hull from vertices (ConvexShape)
+} ColliderShape;
+
+/**
+ * @brief Axis-aligned box collider shape.
+ *
+ * Defined by a center point and box bounds.
  */
 typedef struct {
-  Vector3 *vx;      ///< Array of vertices
-  Vector3 *md;      ///< Axis-aligned vertices located at origin (model)
-  uint8_t *edge;    ///< Shape edges with vertex index, used for rendering.
+  Vector3 center; ///< Center of the box
+  float width;    ///< Box width along X axis
+  float height;   ///< Box height along Y axis
+  float length;   ///< Box length along Z axis
+} BoxShape;
+
+/**
+ * @brief Bounding sphere collider shape.
+ *
+ * Simplest collision shape; defined by center and radius.
+ */
+typedef struct {
+  Vector3 center; ///< Center of the sphere
+  float radius;   ///< Radius of the sphere
+} SphereShape;
+
+/**
+ * @brief Capsule collider shape.
+ *
+ * A cylinder with hemispherical ends, defined by two endpoints
+ * (top and bottom) and a radius.
+ */
+typedef struct {
+  Vector3 top;    ///< Center of the top hemisphere
+  Vector3 bottom; ///< Center of the bottom hemisphere
+  float radius;   ///< Radius of the capsule
+  float height;   ///< Height of the cylindrical section
+} CapsuleShape;
+
+/**
+ * @brief Convex hull collider shape.
+ *
+ * Arbitrary convex polygon defined by a set of vertices.
+ * The vertex arrays are heap-allocated.
+ */
+typedef struct {
+  Vector3 *vx;      ///< Array of vertices in world space
+  Vector3 *md;      ///< Axis-aligned vertices at origin (model data)
   uint8_t vertices; ///< Number of vertices
-  uint8_t edges;    ///< Number of edges
-  bool solid;       ///< true for solid, false for trigger
-  bool overlap;     ///< Collision overlap flag
+} ConvexShape;
+
+/**
+ * @brief 3D Collider
+ *
+ * Uses shapes to store geometric data, which is heap-allocated.
+ *
+ * Supports both solid (block movement) and trigger colliders
+ * (detect overlap without blocking).
+ * Collision filtering is handled through entity layers managed
+ * by the registry.
+ */
+typedef struct {
+  ColliderShape type; ///< shape type
+  void *shape;        ///< Shape data
+  bool solid;         ///< Whether the collider blocks movement or acts as a trigger.
+  bool overlap;       ///< Collision overlap flag
 } Collider;
 
 /**
- * Destructor for Collider component.
+ * @brief Creates a box collider.
  *
- * Automatically frees vertex array memory when collider is removed
+ * @param width Width along the X axis
+ * @param height Height along the Y axis
+ * @param length Length along the Z axis
+ * @param solid Whether the collider is solid or acts as a trigger
+ * @return A box Collider instance
+ *
+ * @see ColliderDestructor()
+ */
+Collider ColliderBox(float width, float height, float length, bool solid);
+
+/**
+ * @brief Creates a capsule collider.
+ *
+ * @param radius Radius of the capsule
+ * @param height Height of the cylindrical section
+ * @param solid Whether the collider is solid or acts as a trigger
+ * @return A capsule Collider instance
+ *
+ * @see ColliderDestructor()
+ */
+Collider ColliderCapsule(float radius, float height, bool solid);
+
+/**
+ * @brief Creates a sphere collider.
+ *
+ * @param radius Radius of the sphere
+ * @param solid Whether the collider is solid or acts as a trigger
+ * @return A sphere Collider instance
+ *
+ * @see ColliderDestructor()
+ */
+Collider ColliderSphere(float radius, bool solid);
+
+/**
+ * @brief Creates a convex hull collider from a vertex array.
+ *
+ * The vertex array is copied internally; the caller retains ownership
+ * of the original data.
+ *
+ * @param model Array of vertices defining the convex hull
+ * @param vertices Number of vertices (max 255)
+ * @param solid Whether the collider is solid or acts as a trigger
+ * @return A convex hull Collider instance
+ *
+ * @see ColliderDestructor()
+ */
+Collider ColliderConvex(Vector3 *model, uint8_t vertices, bool solid);
+
+/**
+ * @brief Destructor for Collider component.
+ *
+ * Automatically frees collider's shape when collider is removed
  * or entity is destroyed. Registered with ComponentDynamic().
  *
- * @param self Pointer to Collider instance
+ * @param ptr Pointer to Collider instance
  */
-void ColliderDestructor(void *self);
+void ColliderDestructor(void *ptr);
 
 /**
- * Creates a cube collider
- *
- * @param size distance between adjacent vertices
- * @param solid true for solid, false for trigger
- * @return Collider instace
- *
- * @see ColliderDestructor
- */
-Collider ColliderCube(float size, bool solid);
-
-/**
- * Collision data.
+ * @brief Collision data.
  *
  * Contains information about collision normal and penetration depth
  * for collision resolution and response.
@@ -108,7 +208,7 @@ typedef struct {
 } Collision;
 
 /**
- * Collision event between two entities.
+ * @brief Collision event between two entities.
  *
  * Passed to collision handlers with information about
  * the colliding entities and collision details.
@@ -120,7 +220,7 @@ typedef struct {
 } CollisionEvent;
 
 /**
- * Collision handler function type.
+ * @brief Collision handler function type.
  *
  * Function called when collision occurs.
  *
@@ -130,7 +230,7 @@ typedef struct {
 typedef void (*CollisionHandler)(ECS *, CollisionEvent *);
 
 /**
- * Component for receiving collision events.
+ * @brief Component for receiving collision events.
  */
 typedef struct {
   // CollisionHandler OnCollisionEnter;  ///< TODO: Collision start handler
@@ -185,13 +285,13 @@ typedef struct {
  * @param type BodyType enum value
  * @return RigidBody initializer
  */
-#define RigidBodyCreate(mass, damping, type)                                   \
-  {(mass > 0) ? mass : INFINITY,                                               \
-   (mass > 0) ? 1.f / mass : 0,                                                \
-   damping,                                                                    \
-   type,                                                                       \
-   (type == BodyDynamic) ? true : false,                                       \
-   {0, 0, 0},                                                                  \
+#define RigidBodyCreate(mass, damping, type)                                             \
+  {(mass > 0) ? mass : INFINITY,                                                         \
+   (mass > 0) ? 1.f / mass : 0,                                                          \
+   damping,                                                                              \
+   type,                                                                                 \
+   (type == BodyDynamic) ? true : false,                                                 \
+   {0, 0, 0},                                                                            \
    {0, 0, 0}}
 
 /**
@@ -204,7 +304,7 @@ typedef struct {
  *
  * Example: AddComponent(world, e, RigidBody, RigidBodyStatic);
  */
-#define RigidBodyStatic RigidBodyCreate(0, 0, BodyStatic)
+#define RigidBodyStatic RigidBodyCreate(INFINITY, 0, BodyStatic)
 
 /**
  * Creates a dynamic rigid body.
@@ -219,8 +319,7 @@ typedef struct {
  *
  * Example: AddComponent(world, e, RigidBody, RigidBodyDynamic(300.f, 1.52f));
  */
-#define RigidBodyDynamic(mass, damping)                                        \
-  RigidBodyCreate(mass, damping, BodyDynamic)
+#define RigidBodyDynamic(mass, damping) RigidBodyCreate(mass, damping, BodyDynamic)
 
 /**
  * Creates a kinematic rigid body.
@@ -235,8 +334,7 @@ typedef struct {
  *
  * Example: AddComponent(world, e, RigidBody, RigidBodyKinematic(0, 0.95f));
  */
-#define RigidBodyKinematic(mass, damping)                                      \
-  RigidBodyCreate(mass, damping, BodyKinematic)
+#define RigidBodyKinematic(mass, damping) RigidBodyCreate(mass, damping, BodyKinematic)
 
 /**
  * Applies a continuous force to a rigid body.
@@ -254,7 +352,7 @@ void ApplyForce(RigidBody *rb, Vector3 force);
 /**
  * Applies an instantaneous impulse to a rigid body.
  *
- * Impulse immediately changes velocity regardless of mass.
+ * Impulse immediately changes velocity.
  * Use for sudden impacts, explosions, jumps.
  *
  * @param rb RigidBody to apply impulse to
@@ -283,6 +381,8 @@ void ApplyDamping(RigidBody *rb);
 /**
  * 2D sprite rendering component.
  *
+ * Wraps a raylib texture with source rectangle and tint for
+ * sprite-sheet support and color modulation.
  */
 typedef struct {
   Texture tex;   ///< Raylib texture to render
@@ -315,7 +415,7 @@ typedef struct {
  * @param ecs Registry containing the entity
  * @param e Entity to add script to
  * @param s Script to add
- * @param ly System layer to run script in
+ * @param phase System phase to run script in
  *
  * Example: AddScript(world, player, PlayerUpdate, EcsOnUpdate);
  */
@@ -326,81 +426,56 @@ void AddScript(ECS *ecs, Entity e, Script s, EcsPhase phase);
 // ########### //
 
 /**
- * Parent component for entity hierarchy.
+ * @brief Hierarchical relationship component.
  *
- * Links an entity to its parent in the hierarchy. Used with Transform
- * to implement hierarchical transformations where child entities
- * inherit parent transformations.
+ * Represents an entity within a tree hierarchy using a doubly linked list
+ * representation for siblings. Each entity can have at most one parent
+ * and any number of children.
+ *
+ * Children of the same parent are connected through the
+ * @ref leftSibling and @ref rightSibling links, while the parent stores
+ * a reference only to its first child.
+ *
+ * Example:
+ * @code
+ * AddComponent(world, entityA, Hierarchy, {InvalidID, InvalidID, InvalidID, entityB});
+ * @endcode
+ *
+ * @see InvalidID for sentinel value
+ * @see EntitySetParent() for automatic attachment
+ * @see EntityAddChild() for automatic attachment
  */
 typedef struct {
-  Entity entity; ///< Parent entity ID
-} Parent;
+  Entity parent;       ///< Entity parent. InvalidID if it has no parent.
+  Entity leftSibling;  ///< Previous sibling. InvalidID for first child.
+  Entity rightSibling; ///< Next sibling. InvalidID for last child.
+  Entity firstChild;   ///< First child. InvalidID if it has no children.
+} Hierarchy;
 
 /**
- * Children component for entity hierarchy.
+ * @brief Attach parent and child entities within a hierarchical relationship.
  *
- * Maintains a list of child entities. Used internally by the hierarchy
- * system to manage parent-child relationships and enable operations
- * on all children of an entity.
- *
- * @note Using this component's fields is deprecated. Use foreach functions
- * instead.
- *
- * @see ForEachChild()
- * @see ForEachChildRecursive()
- */
-typedef struct {
-  Entity *list;
-  Entity count;
-  Entity allocated;
-} Children;
-
-/**
- * Destructor for Children component.
- *
- * Automatically frees child list array memory when Children component
- * is removed or entity is destroyed. Registered with ComponentDynamic().
- *
- * @param self Pointer to Children instance
- */
-void ChildrenDestructor(void *self);
-
-/**
- * Sets a parent for an entity in the hierarchy.
- *
- * Removes the entity from its current parent (if any) and adds it
+ * Removes the child entity from its current parent (if any) and adds it
  * as a child of the specified parent. Automatically updates hierarchy
  * components on both entities.
  *
  * @param ecs Registry containing the entities
+ * @param parent Parent entity
+ * @param child Child entity
+ * @return false if it is not possible, true otherwise
+ */
+bool HierarchyAttach(ECS *ecs, Entity parent, Entity child);
+
+/**
+ * @brief Removes the parent from the entity in the hierarchy.
+ *
+ * Removes the entity from its current parent and automatically updates
+ * hierarchy components on both entities.
+ *
+ * @param ecs Registry containing the entities
  * @param e Child entity
- * @param p Parent entity
  */
-void AddParent(ECS *ecs, Entity e, Entity p);
-
-/**
- * Adds a child entity to another entity.
- *
- * Removes the child from its current parent (if any) and adds it as
- * a child of the specified parent.
- *
- * @param ecs Registry containing the entities
- * @param e Parent entity
- * @param c Child entity to add
- */
-void AddChild(ECS *ecs, Entity e, Entity c);
-
-/**
- * Removes a child from its parent.
- *
- * Removes the parent-child relationship between the specified entities.
- * The child becomes a root entity (no parent).
- *
- * @param ecs Registry containing the entities
- * @param e Parent entity
- * @param c Child entity to remove
- */
-void RemoveChild(ECS *ecs, Entity e, Entity c);
+void HierarchyDetach(ECS *ecs, Entity e);
 
 /**
  * Destroys an entity and removes it from hierarchy.
@@ -412,10 +487,10 @@ void RemoveChild(ECS *ecs, Entity e, Entity c);
  * @param ecs Registry containing the entity
  * @param e Entity to destroy
  *
- * @see DestroyRecursive() to destroy with all descendants
+ * @see EntityDestroyRecursive() to destroy with all descendants
  * @see EcsEntityFree() for basic entity destruction
  */
-void Destroy(ECS *ecs, Entity e);
+void EntityDestroy(ECS *ecs, Entity e);
 
 /**
  * Destroys an entity and all its descendants.
@@ -426,10 +501,10 @@ void Destroy(ECS *ecs, Entity e);
  * @param ecs Registry containing the entity
  * @param e Entity to destroy
  *
- * @see Destroy() to destroy without descendants
+ * @see EntityDestroy() to destroy without descendants
  * @see EcsEntityFree() for basic entity destruction
  */
-void DestroyRecursive(ECS *ecs, Entity e);
+void EntityDestroyRecursive(ECS *ecs, Entity e);
 
 /**
  * Executes a script on all direct children of an entity.
@@ -441,9 +516,9 @@ void DestroyRecursive(ECS *ecs, Entity e);
  * @param e Parent entity
  * @param s Script to execute on each child
  *
- * @see ForEachChildRecursive() for all descendants
+ * @see HierarchyForEachChildRecursive() for all descendants
  */
-void ForEachChild(ECS *ecs, Entity e, Script s);
+void HierarchyForEachChild(ECS *ecs, Entity e, Script s);
 
 /**
  * Executes a script on all descendants of an entity.
@@ -455,9 +530,9 @@ void ForEachChild(ECS *ecs, Entity e, Script s);
  * @param e Root entity
  * @param s Script to execute on each descendant
  *
- * @see ForEachChild() for direct children only
+ * @see HierarchyForEachChild() for direct children only
  */
-void ForEachChildRecursive(ECS *ecs, Entity e, Script s);
+void HierarchyForEachChildRecursive(ECS *ecs, Entity e, Script s);
 
 /**
  * Sets whether an entity (and its children) is active for system processing.
@@ -466,9 +541,9 @@ void ForEachChildRecursive(ECS *ecs, Entity e, Script s);
  * @param e Entity to modify
  * @param active true for activated, false for deactivated
  *
- * @see EntitySetActive() to ignore entity children
+ * @see EntitySetActiveSelf() to ignore entity children
  */
-void SetActive(ECS *ecs, Entity e, bool active);
+void EntitySetActive(ECS *ecs, Entity e, bool active);
 
 /**
  * Sets whether an entity (and its children) is visible for rendering.
@@ -477,8 +552,8 @@ void SetActive(ECS *ecs, Entity e, bool active);
  * @param e Entity to modify
  * @param visible true for visible, false for hidden
  *
- * @see EntitySetVisible() to ignore entity children
+ * @see EntitySetVisibleSelf() to ignore entity children
  */
-void SetVisible(ECS *ecs, Entity e, bool visible);
+void EntitySetVisible(ECS *ecs, Entity e, bool visible);
 
 #endif

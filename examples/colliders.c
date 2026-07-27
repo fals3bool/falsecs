@@ -39,17 +39,14 @@ void MoveScript(ECS *ecs, Entity self) {
     d.x -= 1;
   if (IsKeyDown(KEY_RIGHT))
     d.x += 1;
-  t->translation =
-      Vector3Add(t->translation, Vector3Scale(d, 10 * GetFrameTime()));
+  t->translation = Vector3Add(t->translation, Vector3Scale(d, 10 * GetFrameTime()));
 }
 
-void AHandler(ECS *ecs, CollisionEvent *event) {
+void OnHit(ECS *ecs, CollisionEvent *event) {
   (void)ecs;
-  printf(
-      "[EVENT] Collision %d -> %d: {dist: %.2f, normal: [%.2f, %.2f, %.2f]}\n",
-      event->self, event->other, event->collision.distance,
-      event->collision.normal.x, event->collision.normal.y,
-      event->collision.normal.z);
+  printf("[EVENT] Collision %d -> %d: {dist: %.2f, normal: [%.2f, %.2f, %.2f]}\n",
+         event->self, event->other, event->collision.distance, event->collision.normal.x,
+         event->collision.normal.y, event->collision.normal.z);
 }
 
 int main(void) {
@@ -60,10 +57,10 @@ int main(void) {
   Component(ecs, RotationSpeed);
 
   Camera *cam = WorldMainCamera(ecs);
-  cam->position = (Vector3){25.0f, 15.0f, 25.0f};
+  cam->position = (Vector3){15.0f, 15.0f, 15.0f};
   cam->target = (Vector3){0.0f, 0.0f, 0.0f};
   cam->up = (Vector3){0.0f, 1.0f, 0.0f};
-  cam->fovy = 60.0f;
+  cam->fovy = 15.0f;
   cam->projection = CAMERA_ORTHOGRAPHIC;
 
   AddLayer(ecs, "player");
@@ -76,10 +73,13 @@ int main(void) {
   LayerDisableAll(ecs, "box4");
 
   Entity A = EcsEntity(ecs, "A");
-  AddComponent(ecs, A, Collider, ColliderCube(3, true));
+  float s = 1.f;
+  Vector3 cube[8] = {{-s, -s, -s}, {-s, -s, s}, {s, -s, -s}, {s, -s, s},
+                     {-s, s, -s},  {-s, s, s},  {s, s, -s},  {s, s, s}};
+  AddComponent(ecs, A, Collider, ColliderConvex(cube, 8, true));
   AddComponent(ecs, A, Transform, TransformOrigin);
   AddComponent(ecs, A, RotationSpeed, RA);
-  AddComponent(ecs, A, CollisionListener, {AHandler});
+  AddComponent(ecs, A, CollisionListener, {OnHit});
   RigidBody rbA = RigidBodyDynamic(300, 1.5f);
   rbA.gravity = false;
   AddComponent(ecs, A, RigidBody, rbA);
@@ -88,8 +88,8 @@ int main(void) {
   EntitySetLayer(ecs, A, "player");
 
   Entity B = EcsEntity(ecs, "B");
-  AddComponent(ecs, B, Collider, ColliderCube(4, true));
-  AddComponent(ecs, B, Transform, TransformPosition(10, 0, 10));
+  AddComponent(ecs, B, Collider, ColliderBox(2, 2, 2, true));
+  AddComponent(ecs, B, Transform, TransformPosition(5, 0, 5));
   AddComponent(ecs, B, RotationSpeed, RB);
   RigidBody rbB = RigidBodyDynamic(200, 1.5f);
   rbB.gravity = false;
@@ -98,24 +98,24 @@ int main(void) {
   EntitySetLayer(ecs, B, "box1");
 
   Entity C = EcsEntity(ecs, "C");
-  AddComponent(ecs, C, Collider, ColliderCube(2, true));
-  AddComponent(ecs, C, Transform, TransformPosition(-10, 0, 10));
+  AddComponent(ecs, C, Collider, ColliderBox(2, 2, 2, true));
+  AddComponent(ecs, C, Transform, TransformPosition(-5, 0, 5));
   AddComponent(ecs, C, RotationSpeed, RC);
   AddComponent(ecs, C, RigidBody, RigidBodyStatic);
   AddScript(ecs, C, RotateScript, EcsOnUpdate);
   EntitySetLayer(ecs, C, "box2");
 
   Entity D = EcsEntity(ecs, "D");
-  AddComponent(ecs, D, Collider, ColliderCube(6, true));
-  AddComponent(ecs, D, Transform, TransformPosition(-10, 0, -10));
+  AddComponent(ecs, D, Collider, ColliderCapsule(0.5f, 1, true));
+  AddComponent(ecs, D, Transform, TransformPosition(-5, 0, -5));
   AddComponent(ecs, D, RotationSpeed, RD);
   AddComponent(ecs, D, RigidBody, RigidBodyStatic);
   AddScript(ecs, D, RotateScript, EcsOnUpdate);
   EntitySetLayer(ecs, D, "box3");
 
   Entity E = EcsEntity(ecs, "E");
-  AddComponent(ecs, E, Collider, ColliderCube(6, true));
-  AddComponent(ecs, E, Transform, TransformPosition(10, 0, -10));
+  AddComponent(ecs, E, Collider, ColliderSphere(2, true));
+  AddComponent(ecs, E, Transform, TransformPosition(5, 0, -5));
   AddComponent(ecs, E, RotationSpeed, RE);
   AddComponent(ecs, E, RigidBody, RigidBodyStatic);
   AddScript(ecs, E, RotateScript, EcsOnUpdate);
